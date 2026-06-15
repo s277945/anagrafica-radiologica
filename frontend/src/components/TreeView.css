@@ -1,0 +1,86 @@
+.tree-container {
+  font-size: 0.9rem;
+}
+
+.tree-status {
+  color: #666;
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+.tree-error {
+  color: #d32f2f;
+  padding: 0.5rem;
+  background: #ffeaea;
+  border-radius: 6px;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  margin: 2px 0;
+  transition: background 0.15s;
+}
+
+.tree-node:hover {
+  background: #f0f4ff;
+}
+
+.tree-org {
+  font-weight: 600;
+  font-size: 1rem;
+  background: #e8f0fe;
+  padding: 0.6rem 0.8rem;
+}
+
+.tree-contenitore {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.tree-apparecchiatura {
+  color: #444;
+}
+
+.tree-toggle {
+  font-size: 0.7rem;
+  width: 16px;
+  text-align: center;
+  color: #666;
+}
+
+.tree-icon {
+  font-size: 1.1rem;
+}
+
+.tree-label {
+  flex: 0 0 auto;
+}
+
+.tree-badge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  background: #e0e0e0;
+  border-radius: 4px;
+  color: #555;
+  margin-left: 0.5rem;
+}
+
+.tree-meta {
+  font-size: 0.75rem;
+  color: #888;
+  margin-left: auto;
+}
+
+.tree-children {
+  border-left: 1px dashed #ccc;
+  margin-left: 12px;
+  padding-left: 4px;
+}
+
+.tree-branch {
+  position: relative;
+}
