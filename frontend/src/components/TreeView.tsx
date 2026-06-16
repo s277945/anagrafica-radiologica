@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { fetchTree } from '../api/client'
+import { EmptyState, ErrorState, LoadingState, Pill } from './ui'
 import './TreeView.css'
 
 // DTO types: when Kubb generated types are present, prefer them.
@@ -27,72 +28,204 @@ export interface OrganizzazioneTreeDto {
 }
 
 interface Props {
-  orgId: string
+  orgId: number | string
   refreshKey: number
+}
+
+type Stats = { containers: number; equipments: number; depth: number }
+
+function computeStats(tree: OrganizzazioneTreeDto): Stats {
+  let containers = 0
+  let equipments = tree.apparecchiature.length
+  let depth = 1
+
+  const walk = (c: ContenitoreNodeDto, d: number) => {
+    containers += 1
+    equipments += c.apparecchiature.length
+    depth = Math.max(depth, d)
+    c.sottoContenitori.forEach((sc) => walk(sc, d + 1))
+  }
+
+  tree.contenitori.forEach((c) => walk(c, 2))
+  return { containers, equipments, depth }
 }
 
 export default function TreeView({ orgId, refreshKey }: Props) {
   const [tree, setTree] = useState<OrganizzazioneTreeDto | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
-    if (!orgId) return
+    const orgIdNumber = typeof orgId === 'string' ? Number(orgId) : orgId
+
+    if (!orgIdNumber || Number.isNaN(orgIdNumber)) {
+      setTree(null)
+      return
+    }
+
     setLoading(true)
     setError(null)
-    fetchTree(Number(orgId))
+
+    fetchTree(orgIdNumber)
       .then((dto) => setTree(dto as OrganizzazioneTreeDto))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
   }, [orgId, refreshKey])
 
-  if (loading) return <p className="tree-status">Caricamento...</p>
-  if (error) return <p className="tree-error">Errore: {error}</p>
-  if (!tree) return <p className="tree-status">Inserisci un ID e clicca “Carica”.</p>
+  const stats = useMemo(() => (tree ? computeStats(tree) : null), [tree])
+
+  if (loading) return <LoadingState label="Caricamento albero…" />
+  if (error) return <ErrorState title="Errore durante il caricamento" description={error} />
+
+  if (!tree) {
+    return (
+      <EmptyState
+        title="Nessun albero da mostrare"
+        description="Inserisci un ID organizzazione e premi “Carica”."
+      />
+    )
+  }
+
+  const hasAny =
+    tree.contenitori.length > 0 || tree.apparecchiature.length > 0
+
+  if (!hasAny) {
+    return (
+      <EmptyState
+        title="Organizzazione senza elementi"
+        description="Non risultano contenitori o apparecchiature associate."
+      />
+    )
+  }
 
   return (
-    <div className="tree-container">
-      <div className="tree-node tree-org">
-        <span className="tree-icon">Organizzazione</span>
-        <span className="tree-label">{tree.nome}</span>
-        <span className="tree-badge">ID {tree.id}</span>
+    <div className="tree">
+      <div className="tree__toolbar">
+        <div className="tree__summary">
+          <Pill tone="info">Org • ID {tree.id}</Pill>
+          {stats && (
+            <>
+              <Pill>{stats.containers} contenitori</Pill>
+              <Pill>{stats.equipments} apparecchiature</Pill>
+              <Pill>{stats.depth} livelli</Pill>
+            </>
+          )}
+        </div>
+
+        <div className="tree__actions">
+          <button className="btn btn--ghost" type="button" onClick={() => setCollapsed(true)}>
+            Collassa tutto
+          </button>
+          <button className="btn btn--ghost" type="button" onClick={() => setCollapsed(false)}>
+            Espandi tutto
+          </button>
+        </div>
       </div>
 
-      <div className="tree-children">
-        {tree.contenitori.map((c) => (
-          <ContenitoreView key={c.id} node={c} depth={1} />
-        ))}
-        {tree.apparecchiature.map((a) => (
-          <ApparecchiaturaView key={a.id} app={a} depth={1} />
-        ))}
+      <div className="tree__root">
+        <NodeRow
+          kind="org"
+          title={tree.nome}
+          subtitle="Organizzazione"
+          right={<span className="id">ID {tree.id}</span>}
+        />
+
+        <div className="tree__children">
+          {tree.contenitori.map((c) => (
+            <ContenitoreView key={c.id} node={c} depth={1} collapsed={collapsed} />
+          ))}
+          {tree.apparecchiature.map((a) => (
+            <ApparecchiaturaCard key={a.id} app={a} depth={1} />
+          ))}
+        </div>
       </div>
     </div>
   )
 }
 
-function ContenitoreView({ node, depth }: { node: ContenitoreNodeDto; depth: number }) {
+function NodeRow({
+  kind,
+  title,
+  subtitle,
+  right,
+  onClick,
+  collapsible,
+  expanded,
+  hasChildren,
+}: {
+  kind: 'org' | 'container'
+  title: string
+  subtitle?: string
+  right?: React.ReactNode
+  onClick?: () => void
+  collapsible?: boolean
+  expanded?: boolean
+  hasChildren?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      className={`node node--${kind} ${onClick ? 'node--clickable' : ''}`}
+      onClick={onClick}
+      aria-expanded={collapsible ? expanded : undefined}
+    >
+      <span className="node__icon" aria-hidden="true">
+        {kind === 'org' ? '🏥' : '🗂️'}
+      </span>
+
+      <span className="node__main">
+        <span className="node__title">{title}</span>
+        {subtitle && <span className="node__subtitle">{subtitle}</span>}
+      </span>
+
+      {collapsible && (
+        <span className="node__chev" aria-hidden="true">
+          {hasChildren ? (expanded ? '▾' : '▸') : '•'}
+        </span>
+      )}
+
+      {right && <span className="node__right">{right}</span>}
+    </button>
+  )
+}
+
+function ContenitoreView({
+  node,
+  depth,
+  collapsed,
+}: {
+  node: ContenitoreNodeDto
+  depth: number
+  collapsed: boolean
+}) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.sottoContenitori.length > 0 || node.apparecchiature.length > 0
 
+  useEffect(() => {
+    setExpanded(!collapsed)
+  }, [collapsed])
+
   return (
-    <div className="tree-branch" style={{ marginLeft: `${depth * 16}px` }}>
-      <button
-        type="button"
-        className="tree-node tree-contenitore"
+    <div className="branch" style={{ ['--depth' as never]: depth }}>
+      <NodeRow
+        kind="container"
+        title={node.nome}
+        subtitle="Contenitore"
+        collapsible
+        expanded={expanded}
+        hasChildren={hasChildren}
         onClick={() => setExpanded((v) => !v)}
-      >
-        <span className="tree-toggle">{hasChildren ? (expanded ? '▼' : '▶') : '•'}</span>
-        <span className="tree-label">{node.nome}</span>
-        <span className="tree-badge">Contenitore • ID {node.id}</span>
-      </button>
+        right={<span className="id">ID {node.id}</span>}
+      />
 
       {expanded && (
-        <div className="tree-children">
+        <div className="branch__children">
           {node.sottoContenitori.map((sc) => (
-            <ContenitoreView key={sc.id} node={sc} depth={depth + 1} />
+            <ContenitoreView key={sc.id} node={sc} depth={depth + 1} collapsed={collapsed} />
           ))}
           {node.apparecchiature.map((a) => (
-            <ApparecchiaturaView key={a.id} app={a} depth={depth + 1} />
+            <ApparecchiaturaCard key={a.id} app={a} depth={depth + 1} />
           ))}
         </div>
       )}
@@ -100,13 +233,44 @@ function ContenitoreView({ node, depth }: { node: ContenitoreNodeDto; depth: num
   )
 }
 
-function ApparecchiaturaView({ app, depth }: { app: ApparecchiaturaDto; depth: number }) {
+function formatDateISO(d: string) {
+  // backend may send ISO date, keep it human friendly without depending on locales.
+  // Accepts 'YYYY-MM-DD' or full ISO 'YYYY-MM-DDTHH:mm...'
+  if (!d) return '-'
+  return d.includes('T') ? d.split('T')[0] : d
+}
+
+function tipologiaBadge(t: string): { label: string; tone: 'neutral' | 'info' | 'success' | 'warning' } {
+  const key = (t || '').toUpperCase()
+  if (key.includes('TAC')) return { label: 'TAC', tone: 'info' }
+  if (key.includes('RISON')) return { label: 'Risonanza', tone: 'success' }
+  if (key === 'RX' || key.includes('RADIO')) return { label: 'RX', tone: 'warning' }
+  return { label: t || 'N/D', tone: 'neutral' }
+}
+
+function ApparecchiaturaCard({ app, depth }: { app: ApparecchiaturaDto; depth: number }) {
+  const badge = tipologiaBadge(app.tipologia)
+
   return (
-    <div className="tree-node tree-apparecchiatura" style={{ marginLeft: `${depth * 16}px` }}>
-      <span className="tree-label">{app.nome}</span>
-      <span className="tree-meta">
-        {app.tipologia} • S/N: {app.numeroDiSerie} • Installata: {app.dataInstallazione}
-      </span>
+    <div className="eq" style={{ ['--depth' as never]: depth }}>
+      <div className="eq__head">
+        <div className="eq__title">{app.nome}</div>
+        <div className="eq__badges">
+          <Pill tone={badge.tone}>{badge.label}</Pill>
+          <span className="id">ID {app.id}</span>
+        </div>
+      </div>
+
+      <div className="eq__grid">
+        <div className="eq__field">
+          <div className="eq__k">Numero di serie</div>
+          <div className="eq__v">{app.numeroDiSerie || '-'}</div>
+        </div>
+        <div className="eq__field">
+          <div className="eq__k">Installazione</div>
+          <div className="eq__v">{formatDateISO(app.dataInstallazione)}</div>
+        </div>
+      </div>
     </div>
   )
 }

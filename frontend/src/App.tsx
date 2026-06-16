@@ -1,42 +1,72 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import TreeView from './components/TreeView'
 import CreateApparecchiatura from './components/CreateApparecchiatura'
+import Layout, { type LegendItem } from './components/Layout'
+import './App.css'
 
-function App() {
+export default function App() {
   const [orgId, setOrgId] = useState<string>('1')
   const [refreshKey, setRefreshKey] = useState(0)
 
+  const legend: LegendItem[] = useMemo(
+    () => [
+      { color: 'var(--c-org)', label: 'Organizzazione' },
+      { color: 'var(--c-container)', label: 'Contenitore' },
+      { color: 'var(--c-eq)', label: 'Apparecchiatura' },
+    ],
+    [],
+  )
+
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1>🏥 Anagrafica Radiologica</h1>
-        <p>Gestione apparecchiature radiologiche</p>
-      </header>
-
-      <main className="app-main">
-        <section className="section">
-          <h2>Visualizza Albero Organizzazione</h2>
-          <div className="input-group">
-            <label htmlFor="orgId">ID Organizzazione:</label>
-            <input
-              id="orgId"
-              type="number"
-              value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
-              min="1"
-            />
-            <button onClick={() => setRefreshKey(k => k + 1)}>Carica</button>
+    <Layout
+      title="Anagrafica Radiologica"
+      subtitle="Albero gerarchico: organizzazioni → contenitori → apparecchiature"
+      legend={legend}
+      rightPanel={
+        <div className="panel">
+          <div className="panel__header">
+            <div>
+              <div className="panel__title">Controlli</div>
+              <div className="panel__hint">Seleziona l'organizzazione e aggiorna l'albero.</div>
+            </div>
           </div>
-          <TreeView orgId={orgId} refreshKey={refreshKey} />
-        </section>
 
-        <section className="section">
-          <h2>Crea Apparecchiatura</h2>
-          <CreateApparecchiatura onCreated={() => setRefreshKey(k => k + 1)} />
-        </section>
-      </main>
-    </div>
+          <div className="panel__body">
+            <div className="field">
+              <label className="field__label" htmlFor="orgId">
+                ID Organizzazione
+              </label>
+              <div className="field__row">
+                <input
+                  id="orgId"
+                  className="input"
+                  inputMode="numeric"
+                  type="number"
+                  value={orgId}
+                  onChange={(e) => setOrgId(e.target.value)}
+                  min={1}
+                  placeholder="Es. 1"
+                />
+                <button className="btn btn--primary" onClick={() => setRefreshKey((k) => k + 1)}>
+                  Carica
+                </button>
+              </div>
+              <div className="field__help">
+                Tip: usa <span className="kbd">Invio</span> dentro il campo per ricaricare rapidamente.
+              </div>
+            </div>
+
+            <div className="divider" />
+
+            <CreateApparecchiatura
+              defaultOrganizzazioneId={orgId}
+              onCreated={() => setRefreshKey((k) => k + 1)}
+            />
+          </div>
+        </div>
+      }
+    >
+      <TreeView orgId={orgId} refreshKey={refreshKey} />
+    </Layout>
   )
 }
-
-export default App

@@ -304,3 +304,15 @@ npm run kubb:gen
 ```
 
 > Nota: il facade `frontend/src/api/client.ts` chiama le funzioni generate con le firme "flat" (es. `getOrganizzazioneTree(orgId: number)` e `createApparecchiatura(payload)`), senza passare oggetti `{ pathParams/body/headers }`.
+
+
+## Frontend – miglioramenti UI/UX (aggiornamento)
+
+- Layout moderno a due colonne (albero + pannello controlli).
+- Stati **loading/error/empty** dedicati.
+- Rendering ricorsivo più leggibile con **collassa/espandi tutto**.
+- Card per apparecchiature con metadati e badge tipologia.
+- Form creazione apparecchiatura più curato (validazioni, reset, toast).
+- CSS responsive e componenti UI riutilizzabili.
+
+> Nota: compatibilità mantenuta con le funzioni API generate da **Kubb** tramite `src/api/client.ts`.

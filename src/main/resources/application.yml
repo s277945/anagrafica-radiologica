@@ -5,8 +5,8 @@ server:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/anagrafica_radiologica
-    username: postgres
-    password: postgres
+    username: anagrafica
+    password: anagrafica_pwd
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
