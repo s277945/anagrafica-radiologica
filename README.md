@@ -251,3 +251,56 @@ Il WAR è deployabile su qualsiasi servlet container compatibile Jakarta EE 10:
 - **Espandibile/comprimibile**: ogni nodo contenitore è un toggle
 - **Autenticazione**: header HTTP Basic verso il backend
 - **Integrato nel WAR**: il build Vite produce `dist/` che viene copiato in `src/main/resources/static` durante il Maven build
+
+## Frontend (React + TypeScript)
+
+### Prerequisiti
+- Node.js 18+ (consigliato 20)
+
+### Installazione
+```bash
+cd frontend
+npm install
+```
+
+### Generazione client API (Kubb)
+Il progetto usa **Kubb** per generare client e DTO a partire dallo swagger/OpenAPI del backend.
+
+```bash
+cd frontend
+npm run kubb:gen
+```
+Spec usata: `../src/main/resources/openapi/api.yaml`
+
+### Avvio in sviluppo
+```bash
+cd frontend
+npm run dev
+```
+
+### Build
+```bash
+cd frontend
+npm run build
+```
+
+### Note
+- Il facade `frontend/src/api/client.ts` è compatibile con le funzioni generate da Kubb **che ritornano direttamente i DTO** (non `{ data: ... }`).
+- Per la creazione apparecchiatura viene inviato l'header `X-User-Role: ADMIN` per simulare ruolo ADMIN.
+
+
+## API headers (demo/dev)
+
+Le chiamate API generate da Kubb usano un **fetcher custom** (`frontend/src/api/fetcher.ts`) che aggiunge automaticamente:
+
+- `Authorization: Basic admin:admin` (solo demo/dev)
+- `X-User-Role: ADMIN` per le richieste di scrittura (`POST|PUT|PATCH|DELETE`)
+
+Per rigenerare il client nel frontend:
+
+```bash
+cd frontend
+npm run kubb:gen
+```
+
+> Nota: il facade `frontend/src/api/client.ts` chiama le funzioni generate con le firme "flat" (es. `getOrganizzazioneTree(orgId: number)` e `createApparecchiatura(payload)`), senza passare oggetti `{ pathParams/body/headers }`.

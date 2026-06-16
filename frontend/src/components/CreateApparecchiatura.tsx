@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createApparecchiatura } from '../api/client'
+import {ApparecchiaturaRequestTipologiaEnum} from "../api/generated";
 
 interface Props {
   onCreated: () => void
@@ -25,7 +26,7 @@ export default function CreateApparecchiatura({ onCreated }: Props) {
     try {
       await createApparecchiatura({
         nome: form.nome,
-        tipologia: form.tipologia,
+        tipologia: form.tipologia as  ApparecchiaturaRequestTipologiaEnum,
         numeroDiSerie: form.numeroDiSerie,
         dataInstallazione: form.dataInstallazione,
         organizzazioneId: parseInt(form.organizzazioneId),

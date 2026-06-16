@@ -225,4 +225,56 @@
             </plugin>
         </plugins>
     </build>
+
+  <profiles>
+    <profile>
+      <id>run-sql-scripts</id>
+      <activation>
+        <property>
+          <name>runSqlScripts</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>sql-maven-plugin</artifactId>
+            <version>3.0.0</version>
+            <dependencies>
+              <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>42.7.3</version>
+              </dependency>
+            </dependencies>
+            <executions>
+              <execution>
+                <id>execute-resource-sql-scripts</id>
+                <phase>process-test-resources</phase>
+                <goals>
+                  <goal>execute</goal>
+                </goals>
+                <configuration>
+                  <driver>org.postgresql.Driver</driver>
+                  <url>${spring.datasource.url}</url>
+                  <username>${spring.datasource.username}</username>
+                  <password>${spring.datasource.password}</password>
+                  <srcFiles>
+                    <srcFile>${project.basedir}/src/main/resources/sql-scripts</srcFile>
+                  </srcFiles>
+                  <skip>${!runSqlScripts}</skip>
+                  <orderFileNames>true</orderFileNames>
+                  <delimiter>;</delimiter>
+                  <autocommit>true</autocommit>
+                  <onError>abort</onError>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
