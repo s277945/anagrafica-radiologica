@@ -1,50 +1,67 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createApparecchiatura } from '../api/client'
-import {
-  ApparecchiaturaRequestTipologiaEnum,
-  type ApparecchiaturaRequest,
-  apparecchiaturaRequestTipologiaEnum
-} from '../api/generated/types'
+import { type ApparecchiaturaRequestTipologiaEnum, type ApparecchiaturaRequest } from '../api/generated/types'
 import { Pill } from './ui'
 import './CreateApparecchiatura.css'
 
 interface Props {
   onCreated: () => void
-  defaultOrganizzazioneId?: string | number
+  defaultOrganizzazioneId?: string
 }
 
 type Message = { type: 'success' | 'error'; text: string } | null
 
-
 const TIPI: Array<{ value: ApparecchiaturaRequestTipologiaEnum; label: string }> = [
-  { value: apparecchiaturaRequestTipologiaEnum.TAC, label: 'TAC' },
-  { value: apparecchiaturaRequestTipologiaEnum.RISONANZA, label: 'Risonanza' },
-  { value: apparecchiaturaRequestTipologiaEnum.RX, label: 'RX' },
-  { value: apparecchiaturaRequestTipologiaEnum.MAMMOGRAFO, label: 'Mammografo' },
-  { value: apparecchiaturaRequestTipologiaEnum.ECOGRAFO, label: 'Ecografo' },
+  { value: 'TAC' as ApparecchiaturaRequestTipologiaEnum, label: 'TAC' },
+  { value: 'RMN' as ApparecchiaturaRequestTipologiaEnum, label: 'Risonanza' },
+  { value: 'ECOGRAFO' as ApparecchiaturaRequestTipologiaEnum, label: 'Ecografo' },
 ]
 
-function toNumberOrNull(v: unknown): number | null {
-  if (v === null || v === undefined) return null
-  const n = typeof v === 'number' ? v : Number(String(v))
-  return Number.isFinite(n) && n > 0 ? n : null
+
+type IdPrefix = 'OR' | 'CO'
+
+/**
+ * Normalizza un identificativo accettando input "libero" numerico (solo cifre)
+ * oppure già prefissato (es. OR0000000001 / CO0000000001).
+ *
+ * Ritorna: "<PREFIX><10 cifre>" oppure null se non valido.
+ */
+export function normalizeId(value: unknown, prefix: IdPrefix): string | null {
+  if (value === null || value === undefined) return null
+  const raw = String(value).trim().toUpperCase()
+  if (!raw) return null
+
+  const digitsOnly = raw.replace(/\s+/g, '')
+  const prefixedRe = new RegExp(`^${prefix}[0-9]{10}$`)
+  if (prefixedRe.test(digitsOnly)) return digitsOnly
+
+  const onlyDigitsRe = /^[0-9]{1,10}$/
+  if (onlyDigitsRe.test(digitsOnly)) {
+    const padded = digitsOnly.padStart(10, '0')
+    return `${prefix}${padded}`
+  }
+
+  return null
+}
+
+export function isValidPrefixedId(value: unknown, prefix: IdPrefix): boolean {
+  return normalizeId(value, prefix) !== null
 }
 
 export default function CreateApparecchiatura({ onCreated, defaultOrganizzazioneId }: Props) {
-  const defaultOrgId = useMemo(() => toNumberOrNull(defaultOrganizzazioneId) ?? 0, [defaultOrganizzazioneId])
 
   const [form, setForm] = useState<ApparecchiaturaRequest>({
     nome: '',
-    tipologia: apparecchiaturaRequestTipologiaEnum.TAC,
+    tipologia: 'TAC' as ApparecchiaturaRequestTipologiaEnum,
     numeroDiSerie: '',
     dataInstallazione: '',
-    organizzazioneId: defaultOrgId,
+    organizzazioneId: defaultOrganizzazioneId ?? '',
     contenitoreId: null,
   })
 
   useEffect(() => {
-    setForm((f) => ({ ...f, organizzazioneId: defaultOrgId }))
-  }, [defaultOrgId])
+    setForm((f) => ({ ...f, organizzazioneId: defaultOrganizzazioneId ?? '' }))
+  }, [defaultOrganizzazioneId])
 
   const [message, setMessage] = useState<Message>(null)
   const [loading, setLoading] = useState(false)
@@ -53,7 +70,7 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
     form.nome.trim().length > 0 &&
     form.numeroDiSerie.trim().length > 0 &&
     !!form.dataInstallazione &&
-    (typeof form.organizzazioneId === 'number' ? form.organizzazioneId > 0 : Number(form.organizzazioneId) > 0)
+    isValidPrefixedId(form.organizzazioneId, "OR")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,10 +78,10 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
     setMessage(null)
 
     try {
-      const orgId = toNumberOrNull(form.organizzazioneId)
-      if (!orgId) throw new Error('ID organizzazione non valido.')
+      const orgId = normalizeId(form.organizzazioneId, "OR")
+      if (!orgId) throw new Error('ID organizzazione non valido. Usa 10 cifre o OR+10 cifre.')
 
-      const containerId = toNumberOrNull(form.contenitoreId)
+      const containerId = normalizeId(form.contenitoreId, "CO")
 
       await createApparecchiatura({
         nome: form.nome.trim(),
@@ -79,7 +96,7 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
       setForm((f) => ({
         ...f,
         nome: '',
-        tipologia: apparecchiaturaRequestTipologiaEnum.TAC,
+        tipologia: 'TAC' as ApparecchiaturaRequestTipologiaEnum,
         numeroDiSerie: '',
         dataInstallazione: '',
         contenitoreId: null,
@@ -157,10 +174,9 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
             <label className="field__label">ID organizzazione</label>
             <input
               className="input"
-              type="number"
-              min={1}
-              value={form.organizzazioneId ?? 0}
-              onChange={(e) => setForm({ ...form, organizzazioneId: Number(e.target.value) })}
+              type="text"
+              value={form.organizzazioneId ?? ''}
+              onChange={(e) => setForm({ ...form, organizzazioneId: e.target.value })}
               required
             />
           </div>
@@ -169,11 +185,10 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
             <label className="field__label">ID contenitore (opzionale)</label>
             <input
               className="input"
-              type="number"
-              min={1}
+              type="text"
               value={form.contenitoreId ?? ''}
               onChange={(e) =>
-                setForm({ ...form, contenitoreId: e.target.value === '' ? null : Number(e.target.value) })
+                setForm({ ...form, contenitoreId: e.target.value === '' ? null : e.target.value })
               }
               placeholder="Es. 10"
             />
@@ -193,7 +208,7 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
               setForm((f) => ({
                 ...f,
                 nome: '',
-                tipologia: apparecchiaturaRequestTipologiaEnum.TAC,
+                tipologia: 'TAC' as ApparecchiaturaRequestTipologiaEnum,
                 numeroDiSerie: '',
                 dataInstallazione: '',
                 contenitoreId: null,

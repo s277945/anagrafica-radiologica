@@ -20,6 +20,7 @@ public class ApparecchiaturaService {
     private static final Logger logger = LoggerFactory.getLogger(ApparecchiaturaService.class);
 
     private final ApparecchiaturaRepository apparecchiaturaRepository;
+    private final PrefixedIdGenerator idGenerator;
     private final OrganizzazioneRepository organizzazioneRepository;
     private final ContenitoreRepository contenitoreRepository;
     private final EntityMapper mapper;
@@ -58,6 +59,7 @@ public class ApparecchiaturaService {
         }
 
         Apparecchiatura entity = Apparecchiatura.builder()
+                .id(idGenerator.nextId("AP"))
             .nome(request.getNome())
             .tipologia(Tipologia.valueOf(request.getTipologia().name()))
             .numeroDiSerie(request.getNumeroDiSerie())

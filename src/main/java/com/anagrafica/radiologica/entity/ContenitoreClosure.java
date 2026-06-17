@@ -13,11 +13,11 @@ public class ContenitoreClosure {
 
     @Id
     @Column(name = "ancestor_id")
-    private Long ancestorId;
+    private String ancestorId;
 
     @Id
     @Column(name = "descendant_id")
-    private Long descendantId;
+    private String descendantId;
 
     @Column(nullable = false)
     private int depth;

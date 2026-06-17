@@ -1,3 +1,4 @@
+/* Global styles & design tokens */
 :root{
   --bg: #0b1220;
   --panel: rgba(255,255,255,0.06);
@@ -14,6 +15,56 @@
 
   --ok: #34d399;
   --err: #fb7185;
+
+  --card-bg: var(--panel);
+  --card-bg-2: var(--panel2);
+  --input-bg: rgba(255,255,255,0.06);
+  --input-text: var(--text);
+  --placeholder: rgba(255,255,255,0.55);
+  --link: rgba(255,255,255,0.92);
+  --link-hover: rgba(255,255,255,1);
+  --btn-secondary-bg: rgba(255,255,255,0.06);
+  --btn-secondary-text: var(--text);
+  --btn-secondary-border: rgba(255,255,255,0.14);
+  --table-stripe: rgba(255,255,255,0.03);
+}
+
+
+html[data-theme="light"]{
+  --bg: #f6f7fb;
+  --panel: rgba(0,0,0,0.04);
+  --panel2: rgba(0,0,0,0.06);
+  --text: rgba(12,18,32,0.92);
+  --muted: rgba(12,18,32,0.62);
+  --border: rgba(12,18,32,0.14);
+  --shadow: 0 12px 30px rgba(0,0,0,0.12);
+
+  /* keep semantic colors but slightly adjust for light background */
+  --c-org: #2563eb;
+  --c-container: #059669;
+  --c-eq: #d97706;
+
+  --ok: #059669;
+  --err: #e11d48;
+
+  --input-bg: rgba(255,255,255,0.85);
+  --input-text: rgba(12,18,32,0.92);
+  --placeholder: rgba(12,18,32,0.45);
+  --link: #1d4ed8;
+  --link-hover: #1e40af;
+  --btn-secondary-bg: rgba(255,255,255,0.9);
+  --btn-secondary-text: rgba(12,18,32,0.9);
+  --btn-secondary-border: rgba(12,18,32,0.16);
+  --table-stripe: rgba(12,18,32,0.035);
+}
+
+
+html[data-theme="light"] body{
+  background:
+    radial-gradient(1200px 700px at 10% 10%, rgba(37,99,235,0.18), transparent 60%),
+    radial-gradient(900px 600px at 90% 30%, rgba(5,150,105,0.12), transparent 55%),
+    radial-gradient(900px 700px at 40% 100%, rgba(217,119,6,0.10), transparent 55%),
+    var(--bg);
 }
 
 *{ box-sizing:border-box; }
@@ -150,3 +201,20 @@ a{ color: inherit; }
 .panel__title{ font-weight: 750; }
 .panel__hint{ margin-top: .25rem; color: var(--muted); font-size: 0.85rem; }
 .panel__body{ padding: 0 1rem 1rem 1rem; }
+
+
+a{ color: var(--link); text-decoration: none; }
+a:hover{ color: var(--link-hover); text-decoration: underline; }
+
+.input, select.input, textarea.input{
+  background: var(--input-bg);
+  color: var(--input-text);
+}
+.input::placeholder{ color: var(--placeholder); opacity: 1; }
+
+.btn.btn--secondary{
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
+}
+.table tr:nth-child(even){ background: var(--table-stripe); }

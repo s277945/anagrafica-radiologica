@@ -7,6 +7,6 @@ import java.io.Serializable;
 @NoArgsConstructor @AllArgsConstructor
 @EqualsAndHashCode
 public class ClosureId implements Serializable {
-    private Long ancestorId;
-    private Long descendantId;
+    private String ancestorId;
+    private String descendantId;
 }

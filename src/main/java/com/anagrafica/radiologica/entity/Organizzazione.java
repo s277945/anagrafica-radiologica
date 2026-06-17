@@ -13,8 +13,7 @@ import java.util.List;
 public class Organizzazione {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     @Column(nullable = false)
     private String nome;

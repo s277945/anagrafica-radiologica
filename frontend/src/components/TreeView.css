@@ -20,8 +20,8 @@
 .tree__actions{ display:flex; gap: .5rem; flex-wrap:wrap; }
 
 .tree__root{
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(10, 18, 33, 0.40);
+  border: 1px solid var(--border);
+  background: var(--panel);
   backdrop-filter: blur(8px);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -44,7 +44,7 @@
   color: var(--text);
 }
 .node--clickable{ cursor:pointer; }
-.node--clickable:hover{ background: rgba(255,255,255,0.05); }
+.node--clickable:hover{ background: var(--panel2); }
 .node__icon{ width: 28px; display:flex; align-items:center; justify-content:center; }
 
 .node__main{ display:flex; flex-direction:column; gap: .12rem; min-width: 0; }
@@ -90,7 +90,7 @@
   margin-top: .35rem;
   padding: .85rem .9rem;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid var(--border);
   background: rgba(255,255,255,0.05);
 }
 .eq__head{

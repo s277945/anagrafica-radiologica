@@ -48,8 +48,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
       responses:
         '200':
           description: Albero dell'organizzazione
@@ -90,19 +89,16 @@ components:
           type: string
           format: date
         organizzazioneId:
-          type: integer
-          format: int64
+          type: string
         contenitoreId:
-          type: integer
-          format: int64
+          type: string
           nullable: true
 
     ApparecchiaturaResponse:
       type: object
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
         nome:
           type: string
         tipologia:
@@ -113,18 +109,15 @@ components:
           type: string
           format: date
         organizzazioneId:
-          type: integer
-          format: int64
+          type: string
         contenitoreId:
-          type: integer
-          format: int64
+          type: string
 
     OrganizzazioneTree:
       type: object
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
         nome:
           type: string
         contenitori:
@@ -140,8 +133,7 @@ components:
       type: object
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
         nome:
           type: string
         sottoContenitori:

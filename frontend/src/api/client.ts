@@ -12,7 +12,7 @@ import {
 } from './generated'
 
 /** Carica l'albero dell'organizzazione per orgId. */
-export async function fetchTree(orgId: number) {
+export async function fetchTree(orgId: string) {
   return getOrganizzazioneTreeGenerated(orgId)
 }
 

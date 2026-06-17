@@ -14,7 +14,7 @@ public class OrganizzazioneController implements OrganizzazioniApi {
     private final OrganizzazioneService service;
 
     @Override
-    public ResponseEntity<OrganizzazioneTree> getOrganizzazioneTree(Long id) {
+    public ResponseEntity<OrganizzazioneTree> getOrganizzazioneTree(String id) {
         OrganizzazioneTree tree = service.getTree(id);
         return ResponseEntity.ok(tree);
     }

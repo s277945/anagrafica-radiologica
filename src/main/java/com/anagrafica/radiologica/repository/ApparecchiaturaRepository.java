@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ApparecchiaturaRepository extends JpaRepository<Apparecchiatura, Long> {
+public interface ApparecchiaturaRepository extends JpaRepository<Apparecchiatura, String> {
     Optional<Apparecchiatura> findByNumeroDiSerie(String numeroDiSerie);
-    List<Apparecchiatura> findByOrganizzazioneIdAndContenitoreIsNull(Long organizzazioneId);
-    List<Apparecchiatura> findByContenitoreId(Long contenitoreId);
+    List<Apparecchiatura> findByOrganizzazioneIdAndContenitoreIsNull(String organizzazioneId);
+    List<Apparecchiatura> findByContenitoreId(String contenitoreId);
 }

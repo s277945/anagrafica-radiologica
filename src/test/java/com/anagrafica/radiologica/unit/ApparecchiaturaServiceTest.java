@@ -31,6 +31,8 @@ class ApparecchiaturaServiceTest {
     private OrganizzazioneRepository organizzazioneRepository;
     @Mock
     private ContenitoreRepository contenitoreRepository;
+    @Mock
+    private com.anagrafica.radiologica.service.PrefixedIdGenerator idGenerator;
     @Spy
     private EntityMapper mapper;
 
@@ -42,8 +44,8 @@ class ApparecchiaturaServiceTest {
 
     @BeforeEach
     void setUp() {
-        organizzazione = Organizzazione.builder().id(1L).nome("ASL Roma 1").build();
-        contenitore = Contenitore.builder().id(10L).nome("Edificio A").organizzazione(organizzazione).build();
+        organizzazione = Organizzazione.builder().id("OR0000000001").nome("ASL Roma 1").build();
+        contenitore = Contenitore.builder().id("CO0000000010").nome("Edificio A").organizzazione(organizzazione).build();
     }
 
     @Test
@@ -52,17 +54,18 @@ class ApparecchiaturaServiceTest {
         ApparecchiaturaRequest request = buildRequest("TAC Siemens", "SN-001", LocalDate.of(2024, 1, 15));
 
         when(apparecchiaturaRepository.findByNumeroDiSerie("SN-001")).thenReturn(Optional.empty());
-        when(organizzazioneRepository.findById(1L)).thenReturn(Optional.of(organizzazione));
-        when(contenitoreRepository.findById(10L)).thenReturn(Optional.of(contenitore));
+        when(organizzazioneRepository.findById("OR0000000001")).thenReturn(Optional.of(organizzazione));
+        when(contenitoreRepository.findById("CO0000000010")).thenReturn(Optional.of(contenitore));
+        when(idGenerator.nextId("AP")).thenReturn("AP0000000100");
         when(apparecchiaturaRepository.save(any())).thenAnswer(inv -> {
             Apparecchiatura a = inv.getArgument(0);
-            a.setId(100L);
+            a.setId("AP0000000100");
             return a;
         });
 
         ApparecchiaturaResponse result = service.create(request);
 
-        assertThat(result.getId()).isEqualTo(100L);
+        assertThat(result.getId()).isEqualTo("AP0000000100");
         assertThat(result.getNome()).isEqualTo("TAC Siemens");
         assertThat(result.getTipologia()).isEqualTo("TAC");
         verify(apparecchiaturaRepository).save(any());
@@ -95,7 +98,7 @@ class ApparecchiaturaServiceTest {
     void create_orgNotFound_throwsException() {
         ApparecchiaturaRequest request = buildRequest("TAC", "SN-X", LocalDate.of(2024, 1, 1));
         when(apparecchiaturaRepository.findByNumeroDiSerie("SN-X")).thenReturn(Optional.empty());
-        when(organizzazioneRepository.findById(1L)).thenReturn(Optional.empty());
+        when(organizzazioneRepository.findById("OR0000000001")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(request))
             .isInstanceOf(ResourceNotFoundException.class);
@@ -105,12 +108,12 @@ class ApparecchiaturaServiceTest {
     @DisplayName("Rifiuta contenitore di organizzazione diversa")
     void create_contenitoreMismatch_throwsException() {
         ApparecchiaturaRequest request = buildRequest("TAC", "SN-MIS", LocalDate.of(2024, 1, 1));
-        Organizzazione otherOrg = Organizzazione.builder().id(99L).nome("Altra").build();
-        Contenitore otherContenitore = Contenitore.builder().id(10L).nome("X").organizzazione(otherOrg).build();
+        Organizzazione otherOrg = Organizzazione.builder().id("OR0000000099").nome("Altra").build();
+        Contenitore otherContenitore = Contenitore.builder().id("CO0000000010").nome("X").organizzazione(otherOrg).build();
 
         when(apparecchiaturaRepository.findByNumeroDiSerie("SN-MIS")).thenReturn(Optional.empty());
-        when(organizzazioneRepository.findById(1L)).thenReturn(Optional.of(organizzazione));
-        when(contenitoreRepository.findById(10L)).thenReturn(Optional.of(otherContenitore));
+        when(organizzazioneRepository.findById("OR0000000001")).thenReturn(Optional.of(organizzazione));
+        when(contenitoreRepository.findById("CO0000000010")).thenReturn(Optional.of(otherContenitore));
 
         assertThatThrownBy(() -> service.create(request))
             .isInstanceOf(BusinessValidationException.class)
@@ -123,8 +126,8 @@ class ApparecchiaturaServiceTest {
         req.setTipologia(ApparecchiaturaRequest.TipologiaEnum.TAC);
         req.setNumeroDiSerie(seriale);
         req.setDataInstallazione(data);
-        req.setOrganizzazioneId(1L);
-        req.setContenitoreId(10L);
+        req.setOrganizzazioneId("OR0000000001");
+        req.setContenitoreId("CO0000000010");
         return req;
     }
 }

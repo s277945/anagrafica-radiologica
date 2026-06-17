@@ -13,7 +13,7 @@ import java.util.List;
 public interface ContenitoreClosureRepository extends JpaRepository<ContenitoreClosure, ClosureId> {
 
     @Query("SELECT cl FROM ContenitoreClosure cl WHERE cl.ancestorId = :ancestorId ORDER BY cl.depth")
-    List<ContenitoreClosure> findByAncestorId(@Param("ancestorId") Long ancestorId);
+    List<ContenitoreClosure> findByAncestorId(@Param("ancestorId") String ancestorId);
 
     @Modifying
     @Query(value = """
@@ -22,5 +22,5 @@ public interface ContenitoreClosureRepository extends JpaRepository<ContenitoreC
         FROM contenitori_closure
         WHERE descendant_id = :parentId
         """, nativeQuery = true)
-    void insertClosuresForNewChild(@Param("childId") Long childId, @Param("parentId") Long parentId);
+    void insertClosuresForNewChild(@Param("childId") String childId, @Param("parentId") String parentId);
 }

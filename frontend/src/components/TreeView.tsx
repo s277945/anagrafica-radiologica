@@ -6,7 +6,7 @@ import './TreeView.css'
 // DTO types: when Kubb generated types are present, prefer them.
 // (Fallback: structural typing works with local minimal interfaces)
 export interface ApparecchiaturaDto {
-  id: number
+  id: string
   nome: string
   tipologia: string
   numeroDiSerie: string
@@ -14,25 +14,47 @@ export interface ApparecchiaturaDto {
 }
 
 export interface ContenitoreNodeDto {
-  id: number
+  id: string
   nome: string
   sottoContenitori: ContenitoreNodeDto[]
   apparecchiature: ApparecchiaturaDto[]
 }
 
 export interface OrganizzazioneTreeDto {
-  id: number
+  id: string
   nome: string
   contenitori: ContenitoreNodeDto[]
   apparecchiature: ApparecchiaturaDto[]
 }
 
 interface Props {
-  orgId: number | string
+  orgId: string
   refreshKey: number
 }
 
 type Stats = { containers: number; equipments: number; depth: number }
+
+function normalizeTree(dto: unknown): OrganizzazioneTreeDto {
+  const o = (dto ?? {}) as Partial<OrganizzazioneTreeDto>
+  return {
+    id: String((o as any).id ?? ''),
+    nome: String((o as any).nome ?? ''),
+    contenitori: Array.isArray((o as any).contenitori) ? ((o as any).contenitori as any).map(normalizeContainer) : [],
+    apparecchiature: Array.isArray((o as any).apparecchiature) ? ((o as any).apparecchiature as any) : [],
+  }
+}
+
+function normalizeContainer(dto: unknown): ContenitoreNodeDto {
+  const c = (dto ?? {}) as Partial<ContenitoreNodeDto>
+  return {
+    id: String((c as any).id ?? ''),
+    nome: String((c as any).nome ?? ''),
+    sottoContenitori: Array.isArray((c as any).sottoContenitori)
+      ? ((c as any).sottoContenitori as any).map(normalizeContainer)
+      : [],
+    apparecchiature: Array.isArray((c as any).apparecchiature) ? ((c as any).apparecchiature as any) : [],
+  }
+}
 
 function computeStats(tree: OrganizzazioneTreeDto): Stats {
   let containers = 0
@@ -57,9 +79,9 @@ export default function TreeView({ orgId, refreshKey }: Props) {
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
-    const orgIdNumber = typeof orgId === 'string' ? Number(orgId) : orgId
+    const normalizedOrgId = String(orgId ?? '').trim()
 
-    if (!orgIdNumber || Number.isNaN(orgIdNumber)) {
+    if (!normalizedOrgId) {
       setTree(null)
       return
     }
@@ -67,8 +89,8 @@ export default function TreeView({ orgId, refreshKey }: Props) {
     setLoading(true)
     setError(null)
 
-    fetchTree(orgIdNumber)
-      .then((dto) => setTree(dto as OrganizzazioneTreeDto))
+    fetchTree(normalizedOrgId)
+      .then((dto) => setTree(normalizeTree(dto)))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
   }, [orgId, refreshKey])

@@ -54,12 +54,17 @@ class ApparecchiaturaIntegrationTest {
         contenitoreRepository.deleteAll();
         organizzazioneRepository.deleteAll();
 
-        org = organizzazioneRepository.save(
-            Organizzazione.builder().nome("Gruppo San Raffaele").build()
-        );
-        contenitore = contenitoreRepository.save(
-            Contenitore.builder().nome("Edificio A").organizzazione(org).build()
-        );
+        org = Organizzazione.builder()
+            .id("OR0000000001")
+            .nome("Gruppo San Raffaele")
+            .build();
+        org = organizzazioneRepository.save(org);
+        contenitore = Contenitore.builder()
+            .id("CO0000000001")
+            .nome("Edificio A")
+            .organizzazione(org)
+            .build();
+        contenitore = contenitoreRepository.save(contenitore);
     }
 
     @Test
@@ -110,7 +115,8 @@ class ApparecchiaturaIntegrationTest {
         // Salvo un'apparecchiatura
         apparecchiaturaRepository.save(Apparecchiatura.builder()
             .nome("Existing").tipologia(Tipologia.TAC).numeroDiSerie("SN-DUP-001")
-            .dataInstallazione(LocalDate.of(2024, 1, 1)).organizzazione(org).build());
+            .dataInstallazione(LocalDate.of(2024, 1, 1)).organizzazione(org)
+            .id("AP0000000001").build());
 
         Map<String, Object> body = Map.of(
             "nome", "Nuova TAC",
@@ -138,6 +144,7 @@ class ApparecchiaturaIntegrationTest {
                 .dataInstallazione(LocalDate.of(2024, 2, 28))
                 .organizzazione(org)
                 .contenitore(contenitore)
+                .id("AP0000000002")
                 .build());
 
         entityManager.flush();
@@ -155,7 +162,7 @@ class ApparecchiaturaIntegrationTest {
     @DisplayName("GET organizzazione inesistente restituisce 404")
     @WithMockUser(roles = "USER")
     void getTree_notFound_returns404() throws Exception {
-        mockMvc.perform(get("/api/organizzazioni/{id}/tree", 99999L))
+        mockMvc.perform(get("/api/organizzazioni/{id}/tree", "OR9999999999"))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").exists());
     }

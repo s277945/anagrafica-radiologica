@@ -8,14 +8,14 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ContenitoreRepository extends JpaRepository<Contenitore, Long> {
+public interface ContenitoreRepository extends JpaRepository<Contenitore, String> {
 
     @Query("""
         SELECT DISTINCT c FROM Contenitore c
         LEFT JOIN FETCH c.apparecchiature
         WHERE c.organizzazione.id = :orgId
         """)
-    List<Contenitore> findAllByOrganizzazioneWithApparecchiature(@Param("orgId") Long orgId);
+    List<Contenitore> findAllByOrganizzazioneWithApparecchiature(@Param("orgId") String orgId);
 
-    List<Contenitore> findByOrganizzazioneIdAndParentIsNull(Long organizzazioneId);
+    List<Contenitore> findByOrganizzazioneIdAndParentIsNull(String organizzazioneId);
 }

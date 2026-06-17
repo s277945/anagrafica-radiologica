@@ -21,12 +21,13 @@ public class OrganizzazioneService {
     private static final Logger logger = LoggerFactory.getLogger(OrganizzazioneService.class);
 
     private final OrganizzazioneRepository organizzazioneRepository;
+    private final PrefixedIdGenerator idGenerator;
     private final ContenitoreRepository contenitoreRepository;
     private final ApparecchiaturaRepository apparecchiaturaRepository;
     private final EntityMapper mapper;
 
     @Transactional(readOnly = true)
-    public OrganizzazioneTree getTree(Long orgId) {
+    public OrganizzazioneTree getTree(String orgId) {
         logger.info("Recupero albero per organizzazione id: {}", orgId);
 
         Organizzazione org = organizzazioneRepository.findById(orgId)
@@ -41,8 +42,8 @@ public class OrganizzazioneService {
             .findByOrganizzazioneIdAndContenitoreIsNull(orgId);
 
         // Costruzione iterativa dell'albero con HashMap (DFS iterativo, zero ricorsione)
-        Map<Long, ContenitoreNode> nodeMap = new LinkedHashMap<>();
-        Map<Long, Long> parentMap = new HashMap<>();
+        Map<String, ContenitoreNode> nodeMap = new LinkedHashMap<>();
+        Map<String, String> parentMap = new HashMap<>();
 
         for (Contenitore c : allContenitori) {
             ContenitoreNode node = new ContenitoreNode();
@@ -60,8 +61,8 @@ public class OrganizzazioneService {
 
         // Assemblaggio albero (DFS iterativo)
         List<ContenitoreNode> rootNodes = new ArrayList<>();
-        for (Map.Entry<Long, ContenitoreNode> entry : nodeMap.entrySet()) {
-            Long parentId = parentMap.get(entry.getKey());
+        for (Map.Entry<String, ContenitoreNode> entry : nodeMap.entrySet()) {
+            String parentId = parentMap.get(entry.getKey());
             if (parentId == null) {
                 rootNodes.add(entry.getValue());
             } else {
