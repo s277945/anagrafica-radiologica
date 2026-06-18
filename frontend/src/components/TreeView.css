@@ -50,11 +50,11 @@
 .node__main{ display:flex; flex-direction:column; gap: .12rem; min-width: 0; }
 .node__title{ font-weight: 720; }
 .node__subtitle{ color: var(--muted); font-size: 0.85rem; }
-.node__right{ margin-left:auto; color: rgba(255,255,255,0.70); font-size: .85rem; display:flex; align-items:center; gap:.5rem;}
-.node__chev{ margin-left: auto; color: rgba(255,255,255,0.6); }
+.node__right{ margin-left:auto; color: var(--muted); font-size: .85rem; display:flex; align-items:center; gap:.5rem;}
+.node__chev{ margin-left: 3%; color: var(--muted); }
 
 /* Kind accents */
-.node--org{ border-bottom: 1px solid rgba(255,255,255,0.10); }
+.node--org{ border-bottom: 1px solid var(--border); }
 .node--org .node__icon{ color: var(--c-org); }
 .node--container .node__icon{ color: var(--c-container); }
 
@@ -62,9 +62,9 @@
   font-size: .78rem;
   padding: .12rem .45rem;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.78);
+  border: 1px solid var(--pill-border);
+  background: var(--pill-bg);
+  color: var(--pill-text);
   white-space: nowrap;
 }
 
@@ -80,7 +80,7 @@
 .branch__children{
   margin-left: 18px;
   padding-left: 10px;
-  border-left: 1px dashed rgba(255,255,255,0.18);
+  border-left: 1px dashed var(--border);
 }
 
 /* Equipment cards */
@@ -91,7 +91,7 @@
   padding: .85rem .9rem;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: rgba(255,255,255,0.05);
+  background: var(--panel2);
 }
 .eq__head{
   display:flex;
@@ -107,7 +107,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .6rem;
 }
-.eq__field{ padding: .55rem .65rem; border-radius: 12px; background: rgba(0,0,0,0.14); border: 1px solid rgba(255,255,255,0.10);}
+.eq__field{ padding: .55rem .65rem; border-radius: 12px; background: var(--eq-field-bg); border: 1px solid var(--eq-field-border);}
 .eq__k{ color: var(--muted); font-size: .78rem; }
 .eq__v{ margin-top: .2rem; font-size: .92rem; }
 
