@@ -33,6 +33,7 @@ interface Props {
 }
 
 type Stats = { containers: number; equipments: number; depth: number }
+type Counts = { orgs: number; containers: number; equipments: number }
 
 function normalizeTree(dto: unknown): OrganizzazioneTreeDto {
   const o = (dto ?? {}) as Partial<OrganizzazioneTreeDto>
@@ -72,11 +73,27 @@ function computeStats(tree: OrganizzazioneTreeDto): Stats {
   return { containers, equipments, depth }
 }
 
+function computeCounts(tree: OrganizzazioneTreeDto): Counts {
+  let containers = 0
+  let equipments = tree.apparecchiature.length
+  const walk = (c: ContenitoreNodeDto) => {
+    containers += 1
+    equipments += c.apparecchiature.length
+    c.sottoContenitori.forEach(walk)
+  }
+  tree.contenitori.forEach(walk)
+  return { orgs: 1, containers, equipments }
+}
+
 export default function TreeView({ orgId, refreshKey }: Props) {
   const [tree, setTree] = useState<OrganizzazioneTreeDto | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const [showOrg, setShowOrg] = useState(true)
+  const [showContainer, setShowContainer] = useState(true)
+  const [showEquipment, setShowEquipment] = useState(true)
+  const [legendHover, setLegendHover] = useState<null | 'org' | 'container' | 'equipment'>(null)
 
   useEffect(() => {
     const normalizedOrgId = String(orgId ?? '').trim()
@@ -96,6 +113,7 @@ export default function TreeView({ orgId, refreshKey }: Props) {
   }, [orgId, refreshKey])
 
   const stats = useMemo(() => (tree ? computeStats(tree) : null), [tree])
+  const counts = useMemo(() => (tree ? computeCounts(tree) : null), [tree])
 
   if (loading) return <LoadingState label="Caricamento albero…" />
   if (error) return <ErrorState title="Errore durante il caricamento" description={error} />
@@ -119,6 +137,20 @@ export default function TreeView({ orgId, refreshKey }: Props) {
         description="Non risultano contenitori o apparecchiature associate."
       />
     )
+  }
+
+  const getNodeDimClass = (kind: 'org' | 'container' | 'equipment') => {
+    const enabledByToggle =
+        kind === 'org'
+            ? showOrg
+            : kind === 'container'
+                ? showContainer
+                : showEquipment
+
+    const dimmedByToggle = !enabledByToggle
+    const dimmedByHover = legendHover !== null && legendHover !== kind
+
+    return dimmedByToggle || dimmedByHover ? 'treeItem--dimmed' : ''
   }
 
   return (
@@ -145,20 +177,63 @@ export default function TreeView({ orgId, refreshKey }: Props) {
         </div>
       </div>
 
+
+      <div className="tree__legend" role="group" aria-label="Filtri legenda">
+        <button
+          type="button"
+          className={`legendItem ${showOrg ? 'is-on' : 'is-off'} ${legendHover === 'org' ? 'is-hover' : ''}`}
+          onClick={() => setShowOrg((v) => !v)}
+          onMouseEnter={() => setLegendHover('org')}
+          onMouseLeave={() => setLegendHover(null)}
+          aria-pressed={showOrg}
+        >
+          <span className="legendItem__swatch legendItem__swatch--org" aria-hidden="true" />
+          <span className="legendItem__label">Organizzazione</span>
+          <span className="legendItem__count">{counts?.orgs ?? 0}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`legendItem ${showContainer ? 'is-on' : 'is-off'} ${legendHover === 'container' ? 'is-hover' : ''}`}
+          onClick={() => setShowContainer((v) => !v)}
+          onMouseEnter={() => setLegendHover('container')}
+          onMouseLeave={() => setLegendHover(null)}
+          aria-pressed={showContainer}
+        >
+          <span className="legendItem__swatch legendItem__swatch--container" aria-hidden="true" />
+          <span className="legendItem__label">Contenitore</span>
+          <span className="legendItem__count">{counts?.containers ?? 0}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`legendItem ${showEquipment ? 'is-on' : 'is-off'} ${legendHover === 'equipment' ? 'is-hover' : ''}`}
+          onClick={() => setShowEquipment((v) => !v)}
+          onMouseEnter={() => setLegendHover('equipment')}
+          onMouseLeave={() => setLegendHover(null)}
+          aria-pressed={showEquipment}
+        >
+          <span className="legendItem__swatch legendItem__swatch--equipment" aria-hidden="true" />
+          <span className="legendItem__label">Apparecchiatura</span>
+          <span className="legendItem__count">{counts?.equipments ?? 0}</span>
+        </button>
+      </div>
+
       <div className="tree__root">
         <NodeRow
           kind="org"
           title={tree.nome}
           subtitle="Organizzazione"
           right={<span className="id">ID {tree.id}</span>}
+          className={getNodeDimClass('org')}
         />
 
         <div className="tree__children">
           {tree.contenitori.map((c) => (
-            <ContenitoreView key={c.id} node={c} depth={1} collapsed={collapsed} />
+            <ContenitoreView key={c.id} node={c} depth={1} collapsed={collapsed} getNodeDimClass={getNodeDimClass} />
           ))}
           {tree.apparecchiature.map((a) => (
-            <ApparecchiaturaCard key={a.id} app={a} depth={1} />
+            <ApparecchiaturaCard key={a.id} app={a} depth={1} dimClass={getNodeDimClass('equipment')} />
           ))}
         </div>
       </div>
@@ -175,9 +250,11 @@ function NodeRow({
   collapsible,
   expanded,
   hasChildren,
+  className,
 }: {
   kind: 'org' | 'container'
   title: string
+  className?: string
   subtitle?: string
   right?: React.ReactNode
   onClick?: () => void
@@ -188,7 +265,7 @@ function NodeRow({
   return (
     <button
       type="button"
-      className={`node node--${kind} ${onClick ? 'node--clickable' : ''}`}
+      className={`node node--${kind} ${onClick ? 'node--clickable' : ''} ${className ?? ''}`}
       onClick={onClick}
       aria-expanded={collapsible ? expanded : undefined}
     >
@@ -216,10 +293,12 @@ function ContenitoreView({
   node,
   depth,
   collapsed,
+  getNodeDimClass,
 }: {
   node: ContenitoreNodeDto
   depth: number
   collapsed: boolean
+  getNodeDimClass: (kind: 'org' | 'container' | 'equipment') => string
 }) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.sottoContenitori.length > 0 || node.apparecchiature.length > 0
@@ -239,15 +318,16 @@ function ContenitoreView({
         hasChildren={hasChildren}
         onClick={() => setExpanded((v) => !v)}
         right={<span className="id">ID {node.id}</span>}
+        className={getNodeDimClass('container')}
       />
 
       {expanded && (
         <div className="branch__children">
           {node.sottoContenitori.map((sc) => (
-            <ContenitoreView key={sc.id} node={sc} depth={depth + 1} collapsed={collapsed} />
+            <ContenitoreView key={sc.id} node={sc} depth={depth + 1} collapsed={collapsed} getNodeDimClass={getNodeDimClass} />
           ))}
           {node.apparecchiature.map((a) => (
-            <ApparecchiaturaCard key={a.id} app={a} depth={depth + 1} />
+            <ApparecchiaturaCard key={a.id} app={a} depth={depth + 1} dimClass={getNodeDimClass('equipment')} />
           ))}
         </div>
       )}
@@ -270,11 +350,19 @@ function tipologiaBadge(t: string): { label: string; tone: 'neutral' | 'info' | 
   return { label: t || 'N/D', tone: 'neutral' }
 }
 
-function ApparecchiaturaCard({ app, depth }: { app: ApparecchiaturaDto; depth: number }) {
+function ApparecchiaturaCard({
+  app,
+  depth,
+  dimClass,
+}: {
+  app: ApparecchiaturaDto
+  depth: number
+  dimClass?: string
+}) {
   const badge = tipologiaBadge(app.tipologia)
 
   return (
-    <div className="eq" style={{ ['--depth' as never]: depth }}>
+    <div className={`eq ${dimClass ?? ''}`} style={{ ['--depth' as never]: depth }}>
       <div className="eq__head">
         <div className="eq__title">{app.nome}</div>
         <div className="eq__badges">
