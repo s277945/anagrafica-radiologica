@@ -189,7 +189,6 @@ export default function TreeView({ orgId, refreshKey }: Props) {
         >
           <span className="legendItem__swatch legendItem__swatch--org" aria-hidden="true" />
           <span className="legendItem__label">Organizzazione</span>
-          <span className="legendItem__count">{counts?.orgs ?? 0}</span>
         </button>
 
         <button
