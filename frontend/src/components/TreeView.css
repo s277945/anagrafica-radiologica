@@ -226,26 +226,29 @@
     background: var(--panel2);
 }
 
-.legendItem_swatch {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    border: 2px solid color-mix(in oklab, var(--text), transparent 70%);
+.legendItem_icon {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    font-size: 14px;
+    line-height: 1;
 }
 
-.legendItem_swatch--org {
-    background: var(--c-org);
-    border-color: color-mix(in oklab, var(--c-org), var(--text) 25%);
+.legendItem_icon--org {
+    color: var(--c-org);
 }
 
-.legendItem_swatch--container {
-    background: var(--c-container);
-    border-color: color-mix(in oklab, var(--c-container), var(--text) 25%);
+.legendItem_icon--container {
+    color: var(--c-container);
 }
 
-.legendItem_swatch--equipment {
-    background: var(--c-eq);
-    border-color: color-mix(in oklab, var(var(--c-eq)), var(--text) 25%);
+.legendItem_icon--equipment {
+    color: var(--c-eq);
 }
 
 .legendItem_label {
@@ -266,7 +269,7 @@
     opacity: .75;
 }
 
-.legendItem.is-off .legendItem_swatch {
+.legendItem.is-off .legendItem_icon {
     filter: grayscale(1);
     opacity: .65;
 }
@@ -286,4 +289,45 @@
 
 .treeItem--dimmed:hover {
     opacity: 0.55;
+}
+
+/* Small color indicators for nodes/cards (aligned with legend) */
+.node_dot{
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    border: 2px solid color-mix(in oklab, var(--text), transparent 70%);
+    background: var(--muted);
+}
+
+.node_dot--org{
+    background: var(--c-org);
+    border-color: color-mix(in oklab, var(--c-org), var(--text) 25%);
+}
+
+.node_dot--container{
+    background: var(--c-container);
+    border-color: color-mix(in oklab, var(--c-container), var(--text) 25%);
+}
+
+.node_dot--equipment{
+    background: var(--c-eq);
+    border-color: color-mix(in oklab, var(--c-eq), var(--text) 25%);
+}
+
+
+.eq_icon{
+    display:inline-flex;
+    width: 22px;
+    height: 22px;
+    align-items:center;
+    justify-content:center;
+    margin-right: .45rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--c-eq);
+    font-size: 14px;
+    line-height: 1;
 }

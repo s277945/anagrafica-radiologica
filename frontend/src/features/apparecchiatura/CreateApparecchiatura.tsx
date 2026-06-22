@@ -1,6 +1,8 @@
-import { normalizeId, type IdPrefix } from '../../utils/ids'
+import { normalizeId } from '../../utils/ids'
 import { useEffect, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createApparecchiatura } from '../../api/client'
+import { queryKeys } from '../../api/queryKeys'
 import { type ApparecchiaturaRequestTipologiaEnum, type ApparecchiaturaRequest } from '../../api/generated/types'
 import { Pill } from '../../components/ui'
 import '../../components/CreateApparecchiatura.css'
@@ -18,12 +20,12 @@ const TIPI: Array<{ value: ApparecchiaturaRequestTipologiaEnum; label: string }>
   { value: 'ECOGRAFO' as ApparecchiaturaRequestTipologiaEnum, label: 'Ecografo' },
 ]
 
-
 export function isValidPrefixedId(value: unknown, prefix: import('../../utils/ids').IdPrefix): boolean {
   return normalizeId(value, prefix) !== null
 }
 
 export default function CreateApparecchiatura({ onCreated, defaultOrganizzazioneId }: Props) {
+  const queryClient = useQueryClient()
 
   const [form, setForm] = useState<ApparecchiaturaRequest>({
     nome: '',
@@ -35,39 +37,18 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
   })
 
   useEffect(() => {
+    // Keep organizzazioneId in sync when user changes the loaded organization in the UI.
     setForm((f: any) => ({ ...f, organizzazioneId: defaultOrganizzazioneId ?? '' }))
   }, [defaultOrganizzazioneId])
 
   const [message, setMessage] = useState<Message>(null)
-  const [loading, setLoading] = useState(false)
 
-  const canSubmit =
-    form.nome.trim().length > 0 &&
-    form.numeroDiSerie.trim().length > 0 &&
-    !!form.dataInstallazione &&
-    isValidPrefixedId(form.organizzazioneId, "OR")
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage(null)
-
-    try {
-      const orgId = normalizeId(form.organizzazioneId, "OR")
-      if (!orgId) throw new Error('ID organizzazione non valido. Usa 10 cifre o OR+10 cifre.')
-
-      const containerId = normalizeId(form.contenitoreId, "CO")
-
-      await createApparecchiatura({
-        nome: form.nome.trim(),
-        tipologia: form.tipologia,
-        numeroDiSerie: form.numeroDiSerie.trim(),
-        dataInstallazione: form.dataInstallazione,
-        organizzazioneId: orgId,
-        contenitoreId: containerId,
-      })
-
+  const mutation = useMutation({
+    mutationFn: async (payload: ApparecchiaturaRequest) => createApparecchiatura(payload),
+    onSuccess: async (_data, variables) => {
       setMessage({ type: 'success', text: 'Apparecchiatura creata con successo.' })
+
+      // Clear non-context fields, keep org prefilled.
       setForm((f: any) => ({
         ...f,
         nome: '',
@@ -76,13 +57,49 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
         dataInstallazione: '',
         contenitoreId: null,
       }))
+
+      // Invalidate tree for the target organization so the TreeView updates automatically.
+      const orgId = String(variables.organizzazioneId ?? '').trim()
+      if (orgId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.organizzazioneTree(orgId) })
+      }
+
       onCreated()
-    } catch (err: unknown) {
+    },
+    onError: (err: unknown) => {
       const errorMsg = err instanceof Error ? err.message : 'Errore sconosciuto'
       setMessage({ type: 'error', text: errorMsg })
-    } finally {
-      setLoading(false)
+    },
+  })
+
+  const canSubmit =
+    form.nome.trim().length > 0 &&
+    form.numeroDiSerie.trim().length > 0 &&
+    !!form.dataInstallazione &&
+    isValidPrefixedId(form.organizzazioneId, 'OR') &&
+    !mutation.isPending
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setMessage(null)
+
+    const orgId = normalizeId(form.organizzazioneId, 'OR')
+    if (!orgId) {
+      setMessage({ type: 'error', text: 'ID organizzazione non valido. Usa 10 cifre o OR+10 cifre.' })
+      return
     }
+
+    const containerId = normalizeId(form.contenitoreId, 'CO')
+
+    // Server payload should always be normalized (IDs).
+    mutation.mutate({
+      nome: form.nome.trim(),
+      tipologia: form.tipologia,
+      numeroDiSerie: form.numeroDiSerie.trim(),
+      dataInstallazione: form.dataInstallazione,
+      organizzazioneId: orgId,
+      contenitoreId: containerId,
+    })
   }
 
   return (
@@ -90,112 +107,85 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
       <div className="create_head">
         <div>
           <div className="create_title">Crea apparecchiatura</div>
-          <div className="create_hint">Compila i campi e salva. L'albero verrà aggiornato.</div>
+          <div className="create_hint">Compila i campi e salva. L&apos;albero verrà aggiornato automaticamente.</div>
         </div>
-        <Pill tone="neutral">POST /apparecchiature</Pill>
+        <Pill tone="muted">POST /apparecchiature</Pill>
       </div>
 
-      <form onSubmit={handleSubmit} className="create_form">
-        <div className="grid grid--2">
-          <div className="field">
-            <label className="field_label">Nome</label>
-            <input
-              className="input"
-              placeholder="Es. TAC Siemens Somatom"
-              value={form.nome}
-              onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              required
-            />
-          </div>
+      <form className="create_form" onSubmit={handleSubmit}>
+        <label className="field">
+          <span className="field_label">Nome</span>
+          <input
+            className="input"
+            value={form.nome}
+            onChange={(e) => setForm((f: any) => ({ ...f, nome: e.target.value }))}
+            placeholder="es. TAC Sala 2"
+          />
+        </label>
 
-          <div className="field">
-            <label className="field_label">Tipologia</label>
-            <select
-              className="input"
-              value={form.tipologia}
-              onChange={(e) => setForm({ ...form, tipologia: e.target.value as ApparecchiaturaRequestTipologiaEnum })}
-            >
-              {TIPI.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        <label className="field">
+          <span className="field_label">Tipologia</span>
+          <select
+            className="select"
+            value={form.tipologia as any}
+            onChange={(e) => setForm((f: any) => ({ ...f, tipologia: e.target.value as any }))}
+          >
+            {TIPI.map((t) => (
+              <option key={t.value} value={t.value as any}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
-          <div className="field">
-            <label className="field_label">Numero di serie</label>
-            <input
-              className="input"
-              placeholder="Es. SN-2026-001"
-              value={form.numeroDiSerie}
-              onChange={(e) => setForm({ ...form, numeroDiSerie: e.target.value })}
-              required
-            />
-          </div>
+        <label className="field">
+          <span className="field_label">Numero di serie</span>
+          <input
+            className="input"
+            value={form.numeroDiSerie}
+            onChange={(e) => setForm((f: any) => ({ ...f, numeroDiSerie: e.target.value }))}
+            placeholder="es. SN-12345"
+          />
+        </label>
 
-          <div className="field">
-            <label className="field_label">Data installazione</label>
-            <input
-              className="input"
-              type="date"
-              value={form.dataInstallazione}
-              onChange={(e) => setForm({ ...form, dataInstallazione: e.target.value })}
-              required
-            />
-          </div>
+        <label className="field">
+          <span className="field_label">Data installazione</span>
+          <input
+            className="input"
+            type="date"
+            value={form.dataInstallazione}
+            onChange={(e) => setForm((f: any) => ({ ...f, dataInstallazione: e.target.value }))}
+          />
+        </label>
 
-          <div className="field">
-            <label className="field_label">ID organizzazione</label>
-            <input
-              className="input"
-              type="text"
-              value={form.organizzazioneId ?? ''}
-              onChange={(e) => setForm({ ...form, organizzazioneId: e.target.value })}
-              required
-            />
-          </div>
+        <label className="field">
+          <span className="field_label">ID organizzazione</span>
+          <input
+            className="input"
+            value={String(form.organizzazioneId ?? '')}
+            onChange={(e) => setForm((f: any) => ({ ...f, organizzazioneId: e.target.value }))}
+            placeholder="OR0000000000 oppure 0000000000"
+          />
+        </label>
 
-          <div className="field">
-            <label className="field_label">ID contenitore (opzionale)</label>
-            <input
-              className="input"
-              type="text"
-              value={form.contenitoreId ?? ''}
-              onChange={(e) =>
-                setForm({ ...form, contenitoreId: e.target.value === '' ? null : e.target.value })
-              }
-              placeholder="Es. 10"
-            />
-            <div className="field_help">Se omesso, l'apparecchiatura verrà associata direttamente all'organizzazione.</div>
-          </div>
-        </div>
+        <label className="field">
+          <span className="field_label">ID contenitore (opzionale)</span>
+          <input
+            className="input"
+            value={String(form.contenitoreId ?? '')}
+            onChange={(e) => setForm((f: any) => ({ ...f, contenitoreId: e.target.value || null }))}
+            placeholder="CO0000000000 oppure 0000000000"
+          />
+        </label>
 
         <div className="create_actions">
-          <button className="btn btn--primary" type="submit" disabled={loading || !canSubmit}>
-            {loading ? 'Creazione…' : 'Crea'}
-          </button>
-          <button
-            className="btn btn--ghost"
-            type="button"
-            onClick={() => {
-              setMessage(null)
-              setForm((f: any) => ({
-                ...f,
-                nome: '',
-                tipologia: 'TAC' as ApparecchiaturaRequestTipologiaEnum,
-                numeroDiSerie: '',
-                dataInstallazione: '',
-                contenitoreId: null,
-              }))
-            }}
-          >
-            Reset
+          <button className="btn" type="submit" disabled={!canSubmit}>
+            {mutation.isPending ? 'Salvataggio…' : 'Crea'}
           </button>
         </div>
 
         {message && (
-          <div className={`toast toast--${message.type}`} role={message.type === 'error' ? 'alert' : 'status'}>
+          <div className={`create_message create_message--${message.type}`} role="status">
             {message.text}
           </div>
         )}

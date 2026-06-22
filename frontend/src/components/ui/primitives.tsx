@@ -2,7 +2,7 @@ import type {ReactNode} from 'react'
 
 export function Pill({children, tone = 'neutral'}: {
     children: ReactNode;
-    tone?: 'neutral' | 'info' | 'success' | 'warning'
+    tone?: 'neutral' | 'info' | 'success' | 'warning' | 'muted'
 }) {
     return <span className={`pill pill--${tone}`}>{children}</span>
 }

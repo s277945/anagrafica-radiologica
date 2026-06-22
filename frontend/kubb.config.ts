@@ -17,6 +17,7 @@ export default defineConfig({
     pluginOas(),
     pluginTs(),
     pluginClient({
+      // @ts-ignore
       fetcher: { path: './src/api/fetcher.ts', exportName: 'fetcher' },
       client: 'fetch',
       baseURL: '/anagrafica', // backend context-path; gli endpoint in spec partono da /api/...
