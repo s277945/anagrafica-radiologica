@@ -29,6 +29,31 @@ describe('TreeView', () => {
     expect(await screen.findByText(/Boom/)).toBeInTheDocument()
   })
 
+
+  it('uses icons in legend and avoids dot indicators for org/container nodes', async () => {
+    ;(fetchTree as any).mockResolvedValueOnce({
+      id: '0123456789',
+      nome: 'Org',
+      contenitori: [{ id: '1', nome: 'C1', sottoContenitori: [], apparecchiature: [] }],
+      apparecchiature: [
+        { id: '2', nome: 'Eq', tipologia: 'TAC', numeroDiSerie: 'SN', dataInstallazione: '2020-01-01' },
+      ],
+    })
+
+    const { container } = renderWithQuery(<TreeView orgId="0123456789" refreshKey={0} />)
+
+    await screen.findByText('Org')
+
+    // Legend: icons are rendered (emoji)
+    expect(screen.getByText('🏥')).toBeInTheDocument()
+    expect(screen.getByText('🗂️')).toBeInTheDocument()
+    expect(screen.getByText('⚙️')).toBeInTheDocument()
+
+    // Org/Container nodes should not have dot indicator elements anymore.
+    // Equipment dot removed too (uses icon).
+    expect(container.querySelectorAll('.node_dot').length).toBe(0)
+  })
+
   it('renders tree data (org + container + equipment)', async () => {
     ;(fetchTree as any).mockResolvedValueOnce({
       id: '0123456789',

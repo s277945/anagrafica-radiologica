@@ -37,7 +37,7 @@ describe('App / TreeView fetch behavior', () => {
 
     renderApp()
 
-    const input = screen.getByLabelText('ID Organizzazione', { exact: true })
+    const input = screen.getByLabelText(/ID Organizzazione/i)
 
     // Initial render triggers one fetch for default committed org
     expect(fetchTree).toHaveBeenCalledTimes(1)

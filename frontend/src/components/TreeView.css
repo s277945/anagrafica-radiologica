@@ -331,3 +331,20 @@
     font-size: 14px;
     line-height: 1;
 }
+
+
+/* Light theme: ensure icons in tree and legend stay dark/contrasted (do not affect dark theme) */
+html[data-theme="light"] .node_icon,
+html[data-theme="light"] .legendItem_icon{
+  color: rgba(12,18,32,0.92);
+}
+
+html[data-theme="light"] .legendItem_icon{
+  background: rgba(12,18,32,0.07);
+  border-color: rgba(12,18,32,0.22);
+}
+
+html[data-theme="light"] .legendItem.is-off .legendItem_icon{
+  filter: grayscale(0);
+  opacity: 0.9;
+}
