@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react'
 import TreeView from './components/TreeView'
 import CreateApparecchiatura from './components/CreateApparecchiatura'
 import Layout, { type LegendItem } from './components/Layout'
-import ThemeToggle from './components/ThemeToggle'
-import { useTheme } from './components/useTheme'
+import {ThemeToggle, useTheme} from './components/useTheme'
 import './App.css'
 
 export default function App() {
@@ -39,19 +38,19 @@ export default function App() {
       headerRight={<ThemeToggle theme={theme} onToggle={toggle} />}
       rightPanel={
         <div className="panel">
-          <div className="panel__header">
+          <div className="panel_header">
             <div>
-              <div className="panel__title">Controlli</div>
-              <div className="panel__hint">Seleziona l'organizzazione e aggiorna l'albero.</div>
+              <div className="panel_title">Controlli</div>
+              <div className="panel_hint">Seleziona l'organizzazione e aggiorna l'albero.</div>
             </div>
           </div>
 
-          <div className="panel__body">
+          <div className="panel_body">
             <div className="field">
-              <label className="field__label" htmlFor="orgId">
+              <label className="field_label" htmlFor="orgId">
                 ID Organizzazione
               </label>
-              <div className="field__row">
+              <div className="field_row">
                 <input
                   id="orgId"
                   className="input"
@@ -69,7 +68,7 @@ export default function App() {
                   Carica
                 </button>
               </div>
-              <div className="field__help">
+              <div className="field_help">
                 Tip: usa <span className="kbd">Invio</span> dentro il campo per ricaricare rapidamente.
               </div>
             </div>
