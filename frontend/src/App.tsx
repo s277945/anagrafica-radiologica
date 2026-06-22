@@ -3,7 +3,7 @@ import TreeView from './components/TreeView'
 import CreateApparecchiatura from './components/CreateApparecchiatura'
 import Layout, { type LegendItem } from './components/Layout'
 import {ThemeToggle, useTheme} from './components/useTheme'
-import './App.css'
+import './App.scss'
 
 export default function App() {
   const { theme, toggle } = useTheme()
