@@ -214,6 +214,9 @@ a{ color: inherit; }
 .panel_title{ font-weight: 750; }
 .panel_hint{ margin-top: .25rem; color: var(--muted); font-size: 0.85rem; }
 .panel_body{ padding: 0 1rem 1rem 1rem; }
+.panel_body .select {
+  min-height: 35px;
+}
 
 
 a{ color: var(--link); text-decoration: none; }

@@ -113,7 +113,8 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
       </div>
 
       <form className="create_form" onSubmit={handleSubmit}>
-        <label className="field">
+        
+        <div className="create_grid"><label className="field">
           <span className="field_label">Nome</span>
           <input
             className="input"
@@ -177,6 +178,7 @@ export default function CreateApparecchiatura({ onCreated, defaultOrganizzazione
             placeholder="CO0000000000 oppure 0000000000"
           />
         </label>
+        </div>
 
         <div className="create_actions">
           <button className="btn" type="submit" disabled={!canSubmit}>

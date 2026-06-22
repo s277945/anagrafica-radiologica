@@ -7,18 +7,28 @@ import './App.css'
 
 export default function App() {
   const { theme, toggle } = useTheme()
-  const [orgId, setOrgId] = useState<string>('OR0000000001')
+  const [orgIdDraft, setOrgIdDraft] = useState<string>('OR0000000001')
+  const [orgIdCommitted, setOrgIdCommitted] = useState<string>('OR0000000001')
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const normalizedOrgId = useMemo(() => {
-    const v = orgId.trim().toUpperCase()
+  const normalizedDraftOrgId = useMemo(() => {
+    const v = orgIdDraft.trim().toUpperCase()
     // Compatibilità: se l'utente inserisce solo cifre, normalizza a OR + padding a 10 cifre (OR0000000001)
     if (/^\d+$/.test(v)) return `OR${v.padStart(10, '0')}`
     // Se manca il prefisso OR ma contiene cifre, prova a normalizzare mantenendo il padding quando possibile
     const m = v.match(/^OR(\d+)$/)
     if (m) return `OR${m[1].padStart(10, '0')}`
     return v
-  }, [orgId])
+  }, [orgIdDraft])
+
+  const normalizedCommittedOrgId = useMemo(() => {
+    const v = orgIdCommitted.trim().toUpperCase()
+    if (/^\d+$/.test(v)) return `OR${v.padStart(10, '0')}`
+    const m = v.match(/^OR(\d+)$/)
+    if (m) return `OR${m[1].padStart(10, '0')}`
+    return v
+  }, [orgIdCommitted])
+
 
 
   const legend: LegendItem[] = useMemo(
@@ -57,14 +67,20 @@ export default function App() {
                   autoComplete="off"
                   inputMode="text"
                   type="text"
-                  value={orgId}
-                  onChange={(e) => setOrgId(e.target.value.toUpperCase())}
+                  value={orgIdDraft}
+                  onChange={(e) => setOrgIdDraft(e.target.value.toUpperCase())}
                   placeholder="Es. OR0000000001"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') setRefreshKey((k) => k + 1)
+                    if (e.key === 'Enter') {
+                      setOrgIdCommitted(orgIdDraft)
+                      setRefreshKey((k) => k + 1)
+                    }
                   }}
                 />
-                <button className="btn btn--primary" onClick={() => setRefreshKey((k) => k + 1)}>
+                <button className="btn btn--primary" onClick={() => {
+                  setOrgIdCommitted(orgIdDraft)
+                  setRefreshKey((k) => k + 1)
+                }}>
                   Carica
                 </button>
               </div>
@@ -76,14 +92,14 @@ export default function App() {
             <div className="divider" />
 
             <CreateApparecchiatura
-              defaultOrganizzazioneId={normalizedOrgId}
+              defaultOrganizzazioneId={normalizedCommittedOrgId}
               onCreated={() => setRefreshKey((k) => k + 1)}
             />
           </div>
         </div>
       }
     >
-      <TreeView orgId={normalizedOrgId} refreshKey={refreshKey} />
+      <TreeView orgId={normalizedCommittedOrgId} refreshKey={refreshKey} />
     </Layout>
   )
 }

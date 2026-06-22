@@ -70,3 +70,23 @@ input::placeholder {
     color: var(--muted);
     background: var(--panel)
 }
+
+
+/* Responsive two-column layout for fields (1 col on small screens, 2 on md+) */
+.create_grid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .9rem;
+}
+@media (min-width: 768px){
+    .create_grid{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 1rem;
+    }
+}
+.create_grid > .field{
+    min-width: 0;
+}
+.create_grid .span-2{
+    grid-column: 1 / -1;
+}
