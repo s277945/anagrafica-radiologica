@@ -18,8 +18,8 @@ describe('normalizeTree', () => {
     }
 
     const out = normalizeTree(input as any)
-    expect(out.id).toBe('OR1234567890')
-    expect(out.contenitori[0].id).toBe('CO0000000001')
-    expect(out.contenitori[0].apparecchiature[0].id).toBe('AP0000000002')
+    expect(out.id).toBe('1234567890')
+    expect(out.contenitori[0].id).toBe('1')
+    expect(out.contenitori[0].apparecchiature[0].id).toBe('2')
   })
 })
