@@ -1,0 +1,95 @@
+.shell {
+    max-width: 1250px;
+    margin: 0 auto;
+    padding: 1.6rem;
+}
+
+.shell_header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.shell_title {
+    font-size: 1.35rem;
+    font-weight: 820;
+    letter-spacing: -0.02em;
+}
+
+.shell_subtitle {
+    color: var(--muted);
+    margin-top: .25rem;
+    font-size: .9rem;
+    max-width: 70ch;
+}
+
+.legend {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.legend_item {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .35rem .55rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+}
+
+.legend_dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15) inset;
+}
+
+.legend_label {
+    font-size: .82rem;
+    color: var(--text);
+}
+
+.shell_content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 1rem;
+    align-items: start;
+}
+
+.shell_main {
+    min-height: 520px;
+}
+
+.shell_aside {
+    position: sticky;
+    top: 1rem;
+}
+
+.shell_footer {
+    margin-top: 1.2rem;
+    color: var(--muted);
+    font-size: .82rem;
+}
+
+@media (max-width: 1100px) {
+    .shell_content {
+        grid-template-columns: 1fr;
+    }
+
+    .shell_aside {
+        position: static;
+    }
+}
+
+
+.shell_headerRight {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+}
