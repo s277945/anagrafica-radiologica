@@ -4,30 +4,66 @@ Applicazione **full‑stack** per la gestione di un’anagrafica radiologica con
 
 - **albero organizzativo** (Organizzazione → Contenitori → …) consultabile via API e frontend;
 - **creazione/gestione Apparecchiature** radiologiche con validazioni di business (es. seriale univoco, data non futura, coerenza con organizzazione/contenitore).
-
 ## Indice
 
 1. [Panoramica e architettura](#panoramica-e-architettura)
+    - [Runtime e routing](#runtime-e-routing)
 2. [Scelte tecnologiche](#scelte-tecnologiche)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
 3. [Prerequisiti](#prerequisiti)
-   - [Windows](#windows)
-   - [IntelliJ IDEA](#intellij-idea)
-4. [Setup ambiente](#setup-ambiente)
-5. [Database](#database)
-6. [Build e avvio (locale)](#build-e-avvio-locale)
-7. [Docker Compose](#docker-compose)
-8. [API-first e OpenAPI](#api-first-e-openapi)
-9. [Modello dati e gerarchia](#modello-dati-e-gerarchia)
-10. [Sicurezza](#sicurezza)
-11. [Frontend (React/Vite/TypeScript)](#frontend-reactvitetypescript)
-12. [Configurazione e variabili d’ambiente](#configurazione-e-variabili-dambiente)
-13. [Test](#test)
-14. [Troubleshooting](#troubleshooting)
-15. [DevOps / Packaging WAR](#devops--packaging-war)
-16. [Gitignore](#gitignore)
-17. [Licenza](#licenza)
-
----
+4. [Setup Ambiente e Istruzioni di Installazione](#0-setup-ambiente-e-istruzioni-di-installazione)
+    - [Prerequisiti](#01-prerequisiti)
+    - [Installazione Java 21 Windows](#installazione-java-21-windows)
+    - [Configurazione JAVA_HOME](#configurazione-java_home-se-maven-non-trova-il-jdk)
+    - [Installazione PostgreSQL Windows](#installazione-postgresql-windows)
+    - [Configurazione Database](#02-configurazione-database)
+    - [Configurazione IDE IntelliJ IDEA](#03-configurazione-ide-intellij-idea-202613)
+    - [Build e Avvio](#04-build-e-avvio)
+    - [Esecuzione Test](#05-esecuzione-test)
+    - [Deploy su Tomcat 10.1+](#06-deploy-su-tomcat-101)
+    - [Troubleshooting setup](#07-troubleshooting)
+5. [Scelte Tecnologiche dettagliate](#1-scelte-tecnologiche)
+6. [Approccio API-First OpenAPI](#2-approccio-api-first-openapi)
+    - [Principio](#principio)
+    - [Vantaggi](#vantaggi)
+    - [Flusso di build](#flusso-di-build)
+7. [Modello Dati e Gerarchia](#3-modello-dati-e-gerarchia)
+    - [Strategia: Adjacency List con parent_id](#strategia-adjacency-list-con-parent_id)
+    - [Schema ER](#schema-er)
+8. [Sicurezza](#4-sicurezza)
+9. [Testing](#5-testing)
+    - [Approccio](#approccio)
+10. [DevOps e Packaging](#6-devops-e-packaging)
+    - [Strategia: WAR unico](#strategia-war-unico)
+    - [Pipeline CI/CD GitHub Actions](#pipeline-cicd-github-actions)
+    - [Deploy](#deploy)
+11. [Frontend](#7-frontend)
+12. [Docker Compose](#docker-compose)
+13. [API-first e OpenAPI](#api-first-e-openapi)
+14. [Modello dati e gerarchia](#modello-dati-e-gerarchia)
+15. [Dati, validazioni e anagrafica radiologica](#dati-validazioni-e-anagrafica-radiologica)
+    - [Creazione Apparecchiatura](#creazione-apparecchiatura)
+16. [Struttura dati JPA Entities, relazioni, DTO/API model](#struttura-dati-jpa-entities-relazioni-dtoapi-model)
+    - [Entità principali](#entità-principali)
+    - [Cardinalità e vincoli concettuali](#cardinalità-e-vincoli-concettuali)
+    - [DTO / OpenAPI model request/response](#dto--openapi-model-requestresponse)
+    - [Flusso applicativo Entity → Service → DTO → API → Frontend](#flusso-applicativo-entity--service--dto--api--frontend)
+17. [Frontend React/Vite/TypeScript](#frontend-reactvitetypescript)
+18. [Configurazione e variabili d’ambiente](#configurazione-e-variabili-dambiente)
+    - [Backend](#backend-1)
+    - [Frontend](#frontend-1)
+19. [Test](#test)
+    - [Backend](#backend-2)
+    - [Frontend](#frontend-2)
+20. [Troubleshooting](#troubleshooting)
+    - [Porta 8080/5432 occupata](#porta-80805432-occupata)
+    - [Errore di connessione al DB](#errore-di-connessione-al-db)
+    - [Swagger UI non raggiungibile](#swagger-ui-non-raggiungibile)
+    - [Client API non aggiornato frontend](#client-api-non-aggiornato-frontend)
+21. [DevOps / Packaging WAR](#devops--packaging-war)
+22. [Gitignore](#gitignore)
+23. [Licenza](#licenza)
 
 ## Panoramica e architettura
 
@@ -43,6 +79,7 @@ Il progetto è composto da:
 - Persistenza su PostgreSQL. In sviluppo è prevista anche la possibilità di H2 console (abilitata nelle regole di sicurezza), ma la configurazione principale è PostgreSQL.
 
 ---
+
 
 ## Scelte tecnologiche
 
@@ -77,90 +114,264 @@ Il progetto è composto da:
 - **Node.js** (consigliato LTS) + npm
 - **Docker Desktop** (per database e/o stack completo via Compose)
 
-### IntelliJ IDEA
+## 0. Setup Ambiente e Istruzioni di Installazione
 
-Impostazioni consigliate:
+### 0.1 Prerequisiti
 
-- SDK progetto: **JDK 21**
-- Import Maven: abilitato (il progetto backend è Maven)
-- Plugin consigliati:
-  - Spring Boot
-  - Lombok (se presente/necessario)
-  - Docker (opzionale)
-  - Node.js (per gestire il frontend)
+| Software | Versione | Note |
+|----------|----------|------|
+| **Java JDK** | 21 LTS | Eclipse Temurin consigliato (scaricabile da IntelliJ 2026.1.3: File → Project Structure → SDKs → + → Download JDK) |
+| **Maven** | 3.9.9+ | Incluso come wrapper (`mvnw`/`mvnw.cmd`) nel progetto. Per generarlo: `mvn -N wrapper:wrapper` |
+| **PostgreSQL** | 15+ | Database relazionale |
+| **Node.js** | 20.x | Scaricato automaticamente dal `frontend-maven-plugin` (non serve installazione manuale) |
 
----
+#### Installazione Java 21 (Windows)
+1. Aprire IntelliJ IDEA 2026.1.3
+2. **File → Project Structure → Platform Settings → SDKs**
+3. Cliccare **"+" → Download JDK…**
+4. Selezionare **Version: 21**, Vendor: **Eclipse Temurin (Adoptium)**
+5. Confermare e scaricare
+6. Impostare come Project SDK
 
-## Setup ambiente
+#### Configurazione JAVA_HOME (se Maven non trova il JDK)
+```powershell
+# Verificare il path del JDK scaricato da IntelliJ
+Get-ChildItem "$env:USERPROFILE\.jdks"
 
-Clona il repository e posizionati nella root del progetto:
+# Impostare JAVA_HOME (sessione corrente)
+$env:JAVA_HOME = "C:\Users\<utente>\.jdks\temurin-21.0.11"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
 
-```bash
-git clone <URL_REPO>
-cd anagrafica-radiologica
+# Renderlo permanente
+[System.Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Users\<utente>\.jdks\temurin-21.0.11", "Machine")
 ```
 
----
+#### Installazione PostgreSQL (Windows)
+1. Scaricare l'installer da https://www.postgresql.org/download/windows/
+2. Installare con le opzioni predefinite (porta 5432, password `postgres`)
+3. **Non selezionare Stack Builder** al termine dell'installazione → deselezionare e cliccare Finish
 
-## Database
+### 0.2 Configurazione Database
 
-In sviluppo si utilizza PostgreSQL. Valori di default (vedi `docker-compose.yml`):
-
-| Parametro | Valore |
-|---|---|
-| DB | `anagrafica_radiologica` |
-| User | `postgres` |
-| Password | `postgres` |
-| Host/Port | `localhost:5432` |
-
-Avvio del DB con Docker:
-
-```bash
-docker compose up -d db
+```sql
+-- Aprire pgAdmin o psql
+CREATE DATABASE anagrafica_radiologica;
+-- Le tabelle vengono create automaticamente dallo schema.sql all'avvio
 ```
 
----
+### 0.3 Configurazione IDE (IntelliJ IDEA 2026.1.3)
 
-## Build e avvio (locale)
+#### IntelliJ Ultimate (consigliato)
+Il supporto Spring Boot è integrato. Nessun plugin aggiuntivo necessario.
 
-### Backend
+#### IntelliJ Community
+Installare da **File → Settings → Plugins → Marketplace**:
+- **Spring Boot Helper** — autocompletamento properties, icone gutter per mapping REST
+- **JPA Buddy** — navigazione entità JPA, generazione DDL
 
-Build (crea la WAR in `target/`):
+#### Configurazione obbligatoria (entrambe le edizioni)
+- **File → Settings → Build, Execution, Deployment → Compiler → Annotation Processors** → spuntare **"Enable annotation processing"** (necessario per Lombok)
+- **File → Project Structure → Project** → impostare Project SDK su JDK 21
 
-```bash
-./mvnw clean package
-```
+### 0.4 Build e Avvio
 
-Avvio:
+```powershell
+# Posizionarsi nella root del progetto
+cd H:\cyberqual\anagrafica-radiologica
 
-```bash
-./mvnw spring-boot:run
-```
+# Prima volta: generare il Maven wrapper
+mvn -N wrapper:wrapper
 
-L’applicazione sarà raggiungibile su:
+# Build completa (genera API da OpenAPI, compila backend, builda frontend, produce WAR)
+.\mvnw.cmd clean package
 
-- API: `http://localhost:8080/anagrafica/api/`
-- Swagger UI: `http://localhost:8080/anagrafica/swagger-ui/index.html`
+# Avvio BE in locale (con Tomcat embedded)
+.\mvnw.cmd spring-boot:run
 
-> Nota: se lanci il backend senza Docker, assicurati che PostgreSQL sia raggiungibile e che le proprietà datasource siano coerenti.
+# Generazione client API (Kubb) - usa **Kubb** per generare client e DTO a partire dallo swagger/OpenAPI del backend.
+cd frontend
+npm run kubb:gen
 
-### Frontend
-
-Da `frontend/`:
-
-```bash
-npm install
+# Avvio FE in locale
 npm run dev
 ```
 
-Build produzione:
+**URL di verifica:**
+| Risorsa | URL |
+|---------|-----|
+| Frontend | http://localhost:8080/anagrafica/ |
+| Swagger UI | http://localhost:8080/anagrafica/swagger-ui.html |
+| OpenAPI JSON | http://localhost:8080/anagrafica/v3/api-docs |
+| API base | http://localhost:8080/anagrafica/api/ |
 
+**Esempi di chiamata:**
 ```bash
-npm run build
-npm run preview
+# GET albero (utente USER)
+curl -u user:user http://localhost:8080/anagrafica/api/organizzazioni/1/tree
+
+# POST apparecchiatura (utente ADMIN)
+curl -u admin:admin -X POST http://localhost:8080/anagrafica/api/apparecchiature \
+  -H "Content-Type: application/json" \
+  -d '{"nome":"TAC GE Revolution","tipologia":"TAC","numeroDiSerie":"SN-001","dataInstallazione":"2024-03-15","organizzazioneId":1}'
+```
+
+### 0.5 Esecuzione Test
+
+```powershell
+# Tutti i test (unit + integration, usa H2 in-memory)
+.\mvnw.cmd test
+
+# Solo unit test
+.\mvnw.cmd test -Dtest="*ServiceTest"
+
+# Solo integration test
+.\mvnw.cmd test -Dtest="*IntegrationTest"
+```
+
+I test di integrazione usano il profilo `test` con database H2 in-memory: non richiedono PostgreSQL attivo.
+
+### 0.6 Deploy su Tomcat 10.1+
+
+1. Build: `.\mvnw.cmd clean package -DskipTests`
+2. Copiare `target/anagrafica-radiologica.war` nella cartella `webapps/` di Tomcat
+3. Avviare Tomcat → l'app sarà disponibile su `http://<host>:8080/anagrafica-radiologica/`
+
+### 0.7 Troubleshooting
+
+| Problema | Soluzione |
+|----------|-----------|
+| `mvn` non riconosciuto | Usare `.\mvnw.cmd` oppure installare Maven e aggiungere al PATH |
+| `release version 21 not supported` | Impostare `JAVA_HOME` sul JDK 21 (vedi sezione 0.1) |
+| `npm ci` fallisce per mancanza di `package-lock.json` | Eseguire `cd frontend && npm install` poi ripetere il build |
+| Connessione DB rifiutata | Verificare che PostgreSQL sia attivo e il database `anagrafica_radiologica` esista |
+| Porta 8080 occupata | Aggiungere `server.port=8081` in `application.yml` |
+
+---
+
+## 1. Scelte Tecnologiche
+
+| Componente | Scelta | Motivazione |
+|------------|--------|-------------|
+| Linguaggio | **Java 21 LTS** | Ultima versione LTS; supporto a record, pattern matching, text blocks, virtual threads |
+| Framework | **Spring Boot 3.3.2** | Standard de facto per microservizi Java enterprise; ecosistema maturo |
+| API Design | **OpenAPI 3.0 + openapi-generator-maven-plugin** | Approccio API-first: il contratto YAML è la single source of truth; interfacce e DTO generati automaticamente |
+| Documentazione API | **springdoc-openapi 2.6 + Swagger UI** | UI interattiva per esplorare e testare gli endpoint, generata dal contratto |
+| Database | **PostgreSQL 15** | Affidabilità, supporto nativo a CTE ricorsive (`WITH RECURSIVE`), indici avanzati |
+| ORM | **Spring Data JPA / Hibernate** | Produttività; mapping dichiarativo delle entità |
+| Sicurezza | **Spring Security** (HTTP Basic + utenti in-memory) | Simulazione ruoli ADMIN/USER senza complessità OAuth2 |
+| Build | **Maven + frontend-maven-plugin** | Build unificata backend+frontend → singolo WAR |
+| Frontend | **React 18 + TypeScript + Vite** | Tipizzazione statica, build veloce, componente tree-view ricorsivo |
+| Packaging | **WAR** | Compatibile con application server aziendali (Tomcat 10.1+, WildFly 27+) |
+| Test | **JUnit 5 + Mockito + MockMvc + H2** | Unit test isolati + integration test con DB in-memory |
+
+---
+
+## 2. Approccio API-First (OpenAPI)
+
+### Principio
+Il contratto API è definito nel file `src/main/resources/openapi/api.yaml`. Da questo file vengono generate automaticamente:
+- **Interfacce Java** dei controller (package `com.anagrafica.radiologica.api`)
+- **DTO** di request/response (package `com.anagrafica.radiologica.api.model`)
+
+I controller implementano le interfacce generate → **il codice è sempre allineato al contratto**.
+
+### Vantaggi
+- **Single source of truth**: il YAML definisce il contratto, non il codice
+- **Validazione automatica**: le constraint definite nel YAML (required, minLength, enum) diventano annotazioni Jakarta Validation
+- **Swagger UI gratuita**: springdoc-openapi espone automaticamente la documentazione interattiva
+- **Condivisibilità**: il file YAML può essere condiviso con team frontend, QA, partner esterni
+- **Generazione client**: dallo stesso YAML è possibile generare client TypeScript, Python, ecc.
+
+### Flusso di build
+```
+api.yaml → openapi-generator-maven-plugin → Interfacce + DTO (target/generated-sources/)
+                                                    ↓
+                                     Controller implements Interface
 ```
 
 ---
+
+## 3. Modello Dati e Gerarchia
+
+### Strategia: Adjacency List con `parent_id`
+
+La relazione ricorsiva dei Contenitori è gestita tramite **Adjacency List**: ogni record `contenitori` ha un campo `parent_id` nullable che punta al contenitore padre.
+
+**Vantaggi:**
+- Semplicità di inserimento/modifica
+- Query ricorsive performanti con CTE PostgreSQL (`WITH RECURSIVE`)
+- Nessun vincolo sulla profondità dell'albero
+
+### Schema ER
+
+```
+┌─────────────────┐       ┌──────────────────┐       ┌─────────────────────┐
+│  organizzazioni │       │   contenitori    │       │   apparecchiature   │
+├─────────────────┤       ├──────────────────┤       ├─────────────────────┤
+│ id (PK)         │──┐    │ id (PK)          │──┐    │ id (PK)             │
+│ nome            │  │    │ nome             │  │    │ nome                │
+└─────────────────┘  │    │ organizzazione_id│←─┘    │ tipologia           │
+                     │    │ parent_id (FK)   │←─┐    │ numero_di_serie     │
+                     │    └──────────────────┘  │    │ data_installazione  │
+                     │           │              │    │ organizzazione_id   │←─┐
+                     │           └──────────────┘    │ contenitore_id      │  │
+                     │         (self-referencing)    └─────────────────────┘  │
+                     └────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Sicurezza
+
+Implementazione leggera con **Spring Security**:
+- **HTTP Basic Authentication** (senza complessità JWT/OAuth2)
+- **Utenti in-memory**: `admin/admin` (ADMIN), `user/user` (USER)
+- **Autorizzazione**: `@PreAuthorize("hasRole('ADMIN')")` sugli endpoint POST
+- **Swagger UI/OpenAPI docs**: accesso pubblico (permitAll)
+
+---
+
+## 5. Testing
+
+| Tipo | Framework | Cosa testa | DB |
+|------|-----------|------------|-----|
+| **Unit** | JUnit 5 + Mockito | Service layer (logica di business isolata) | Nessuno (mock) |
+| **Integration** | Spring Boot Test + MockMvc | Endpoint REST end-to-end, sicurezza, persistenza | H2 in-memory |
+
+### Approccio
+- **Unit test**: verificano la logica di business isolando le dipendenze con mock (repository, altri service)
+- **Integration test**: verificano il flusso completo HTTP → Controller → Service → Repository → DB, inclusi i vincoli di sicurezza (ruoli ADMIN vs USER)
+
+---
+
+## 6. DevOps e Packaging
+
+### Strategia: WAR unico
+Il progetto produce un **singolo file WAR** (`target/anagrafica-radiologica.war`) che include:
+- Backend Java compilato
+- Frontend React (buildato e copiato in `static/`)
+- Tutte le dipendenze (escluso il servlet container, marcato `provided`)
+
+### Pipeline CI/CD (GitHub Actions)
+```yaml
+- Checkout → Setup JDK 21 → mvn clean package → Upload WAR come artefatto
+- I test vengono eseguiti nella fase `test` di Maven (H2 in-memory, nessuna dipendenza esterna)
+```
+
+### Deploy
+Il WAR è deployabile su qualsiasi servlet container compatibile Jakarta EE 10:
+- Apache Tomcat 10.1+
+- WildFly 27+
+- Il `SpringBootServletInitializer` garantisce il bootstrap corretto in ambiente application server
+
+---
+
+## 7. Frontend
+
+- **React 18 + TypeScript + Vite**: componente `TreeView` ricorsivo che visualizza la gerarchia
+- **Espandibile/comprimibile**: ogni nodo contenitore è un toggle
+- **Autenticazione**: header HTTP Basic verso il backend
+- **Integrato nel WAR**: il build Vite produce `dist/` che viene copiato in `src/main/resources/static` durante il Maven build
 
 ## Docker Compose
 
@@ -216,13 +427,105 @@ La gerarchia è esposta via API e rappresentata anche a frontend.
 
 ---
 
-## Sicurezza
+## Dati, validazioni e “anagrafica radiologica”
 
-- Autenticazione: **HTTP Basic Auth**
-- Utenti: **in-memory** (configurazione lato backend)
-- Swagger UI e (se abilitata) H2 console sono gestite secondo le regole definite in Spring Security.
+### Creazione Apparecchiatura
+La logica è in `ApparecchiaturaService#create` e applica:
+- **dataInstallazione non futura** (se presente),
+- **numeroDiSerie univoco** (409 se duplicato),
+- **organizzazioneId obbligatorio**: deve esistere,
+- `contenitoreId` opzionale: se presente deve esistere **e** appartenere alla stessa organizzazione.
 
-Suggerimento: per ambienti non di sviluppo, prevedere un provider utenti esterno e secret management (es. variabili d’ambiente/ Vault).
+L’ID dell’apparecchiatura viene generato con prefisso (es. `"AP..."`) tramite `PrefixedIdGenerator`.
+
+---
+
+### Struttura dati (JPA Entities, relazioni, DTO/API model)
+
+Questa sezione dettaglia il **modello dati** in termini di **entità JPA**, **relazioni** e **contratti DTO/OpenAPI** usati per request/response. Il modello è pensato per rappresentare un **albero organizzativo** (Organizzazione → Contenitori → …) e collegare le **Apparecchiature** ai nodi della gerarchia.
+
+#### Entità principali
+
+- **`OrganizzazioneEntity`**
+    - Rappresenta il **nodo radice** dell’albero.
+    - Identificativo “business” opzionalmente prefissato con `OR` (es. `OR001`) se coerente con la convenzione del progetto.
+    - Relazioni:
+        - `@OneToMany(mappedBy = "organizzazione")` verso i **contenitori**.
+        - `@OneToMany(mappedBy = "organizzazione")` verso le **apparecchiature** (collegamento diretto all’organizzazione).
+
+- **`ContenitoreEntity`**
+    - Rappresenta un nodo **gerarchico** appartenente a una specifica organizzazione.
+    - Identificativo “business” opzionalmente prefissato con `CO` (es. `CO010`) se coerente con la convenzione del progetto.
+    - Relazioni:
+        - `@ManyToOne` verso `OrganizzazioneEntity` (FK `organizzazione_id`, obbligatoria).
+        - **Self‑reference** per la gerarchia dei contenitori:
+            - `parent_id` (FK verso `ContenitoreEntity`, **nullable** per i nodi di primo livello).
+            - `@ManyToOne` verso il **parent** (`ContenitoreEntity parent`).
+            - `@OneToMany(mappedBy = "parent")` verso i **children** (`List<ContenitoreEntity> children`).
+        - `@OneToMany(mappedBy = "contenitore")` verso le **apparecchiature** (collegamento opzionale).
+
+- **`ApparecchiaturaEntity`**
+    - Rappresenta l’entità “foglia” con attributi anagrafici/tecnici (es. matricola/seriale, modello, produttore, date, ecc.).
+    - Identificativo “business” opzionalmente prefissato con `AP` (es. `AP100`) se coerente con la convenzione del progetto.
+    - Relazioni:
+        - `@ManyToOne` verso `OrganizzazioneEntity` (FK `organizzazione_id`, **obbligatoria**): ogni apparecchiatura appartiene sempre a una organizzazione.
+        - `@ManyToOne(optional = true)` verso `ContenitoreEntity` (FK `contenitore_id`, **opzionale**): l’apparecchiatura può essere agganciata a un contenitore specifico oppure solo all’organizzazione.
+
+#### Cardinalità e vincoli (concettuali)
+
+- **Organizzazione → Contenitori**: `1 -> N` (una organizzazione contiene molti contenitori).
+- **Contenitore → Sotto‑contenitori**: `1 -> N` con **self‑referencing** via `parent_id`.
+- **Organizzazione → Apparecchiature**: `1 -> N`.
+- **Contenitore → Apparecchiature**: `1 -> N` (opzionale lato apparecchiatura).
+
+Vincoli tipici (coerenti con le regole di business descritte nel README):
+
+- `organizzazione_id` **non nullo** su `ContenitoreEntity` e `ApparecchiaturaEntity`.
+- `contenitore_id` **nullable** su `ApparecchiaturaEntity`.
+- Se `contenitore_id` è valorizzato, allora il contenitore deve appartenere alla **stessa organizzazione** dell’apparecchiatura.
+- Unicità su campi di dominio (ad es. **seriale/matricola univoca**), se prevista dalle validazioni.
+- Validazioni su date (ad es. **data non futura**) e coerenenza dei dati anagrafici.
+
+> Nota: i nomi delle colonne/FK possono variare (es. `organization_id` vs `organizzazione_id`). L’intento qui è descrittivo; per i dettagli puntuali fare riferimento alle `@Entity` e/o alle migrazioni.
+
+#### DTO / OpenAPI model (request/response)
+
+L’applicazione segue un approccio **API‑first**: i modelli esposti sono definiti nello **schema OpenAPI** e generano (o guidano) i DTO usati nelle request/response.
+
+Tipicamente:
+
+- **DTO di output** (read model)
+    - `OrganizzazioneDto` / `OrganizzazioneResponse` (id, nome, metadati, …)
+    - `ContenitoreDto` (id, nome, `parentId`, `children` o struttura ad albero, …)
+    - `ApparecchiaturaDto` (id, seriale, dati anagrafici, `organizzazioneId`, `contenitoreId` opzionale, …)
+
+- **DTO di input** (create/update)
+    - `Create/UpdateOrganizzazioneRequest`
+    - `Create/UpdateContenitoreRequest` (incluso `parentId` opzionale)
+    - `Create/UpdateApparecchiaturaRequest` (incluso `organizzazioneId` obbligatorio e `contenitoreId` opzionale)
+
+I nomi esatti dipendono dal file OpenAPI e dall’eventuale generazione del client; l’idea è mantenere separate:
+
+- **Entity JPA** (persistenza)
+- **DTO OpenAPI** (contratto esterno)
+
+#### Flusso applicativo (Entity → Service → DTO → API → Frontend)
+
+Il flusso tipico delle operazioni (CRUD e consultazione gerarchia) è:
+
+1. **Controller/API layer** (Spring MVC / Web)
+    - Riceve la request con un **DTO OpenAPI** (es. `CreateApparecchiaturaRequest`).
+2. **Service layer**
+    - Applica **validazioni di business** (es. seriale univoco, data non futura, coerenza organizzazione↔contenitore).
+    - Esegue lookup e persistenza tramite repository JPA.
+3. **Repository layer (JPA)**
+    - Salva/legge `OrganizzazioneEntity`, `ContenitoreEntity`, `ApparecchiaturaEntity`.
+4. **Mapping Entity ↔ DTO**
+    - Converte l’entity in DTO di response (es. `ApparecchiaturaDto`) e viceversa.
+5. **API response**
+    - Restituisce DTO conformi all’OpenAPI.
+6. **Frontend**
+    - Consuma le API tramite client generato o wrapper; rende l’albero (organizzazione/contenitori) e le apparecchiature collegate.
 
 ---
 
