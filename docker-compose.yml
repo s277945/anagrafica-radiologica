@@ -5,8 +5,8 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: anagrafica_radiologica
-      POSTGRES_USER: anagrafica
-      POSTGRES_PASSWORD: anagrafica_pwd
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
@@ -23,8 +23,8 @@ services:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/anagrafica_radiologica
-      SPRING_DATASOURCE_USERNAME: anagrafica
-      SPRING_DATASOURCE_PASSWORD: anagrafica_pwd
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
     depends_on:
       db:
         condition: service_healthy
