@@ -158,6 +158,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 CREATE DATABASE anagrafica_radiologica;
 -- Le tabelle vengono create automaticamente dallo schema.sql all'avvio
 ```
+Dopodichè eseguire lo script db-data-init.sql per inizializzare i dati delle tabelle db
 
 ### 0.3 Configurazione IDE (IntelliJ IDEA 2026.1.3)
 
