@@ -40,3 +40,9 @@ Thumbs.db
 
 # Misc
 *.tgz
+
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+frontend/.playwright/
+frontend/**/trace.zip
