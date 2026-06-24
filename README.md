@@ -35,6 +35,15 @@ npm run dev
 al prompt sul browser, inserire utente ADMIN, password ADMIN per pieni privilegi
 ```
 
+## Avvio fast con docker image
+
+````
+git clone https://github.com/s277945/anagrafica-radiologica.git
+cd anagrafica-radiologica
+
+docker compose -f docker-compose.release.yml up -d --pull always
+````
+
 ## Indice
 
 1. [Panoramica e architettura](#panoramica-e-architettura)
