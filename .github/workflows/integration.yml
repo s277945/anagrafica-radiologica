@@ -3,10 +3,12 @@ name: Full-stack Integration Tests
 on:
   pull_request:
     branches:
+      - snapshot
       - stable
       - main
   push:
     branches:
+      - snapshot
       - stable
       - main
   workflow_dispatch:
