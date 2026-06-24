@@ -1,0 +1,59 @@
+name: Full-stack Integration Tests
+
+on:
+  pull_request:
+    branches:
+      - stable
+      - main
+  push:
+    branches:
+      - stable
+      - main
+  workflow_dispatch:
+
+jobs:
+  fullstack-integration:
+    name: Full-stack integration tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Ensure scripts are executable
+        run: |
+          chmod +x scripts/integration-tests.sh
+          chmod +x scripts/smoke-tests.sh
+
+      - name: Run full-stack integration tests
+        run: ./scripts/integration-tests.sh
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          if-no-files-found: ignore
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: frontend/test-results/
+          if-no-files-found: ignore

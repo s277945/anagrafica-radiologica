@@ -334,14 +334,99 @@ Implementazione leggera con **Spring Security**:
 
 ## 5. Testing
 
-| Tipo | Framework | Cosa testa | DB |
-|------|-----------|------------|-----|
-| **Unit** | JUnit 5 + Mockito | Service layer (logica di business isolata) | Nessuno (mock) |
-| **Integration** | Spring Boot Test + MockMvc | Endpoint REST end-to-end, sicurezza, persistenza | H2 in-memory |
+| Tipo | Framework / Tooling | Cosa testa | DB / Runtime |
+|------|----------------------|------------|--------------|
+| **Unit (backend)** | JUnit 5 + Mockito | Service layer (logica di business isolata) | Nessuno (mock) |
+| **Integration (backend)** | Spring Boot Test + MockMvc | Endpoint REST end-to-end, sicurezza, persistenza | H2 in-memory |
+| **Unit / Component (frontend)** | Vitest + Testing Library + `jsdom` + `@testing-library/jest-dom` | Componenti React, hook e logica UI (rendering, eventi, stati) | Browser DOM simulato (`jsdom`) |
+| **Integration (full‑stack E2E)** | Playwright + Docker Compose dedicato | Flusso **frontend + backend + PostgreSQL** (UI → API → DB) con dati seed dedicati | Container Docker (PostgreSQL + backend + frontend) |
 
 ### Approccio
-- **Unit test**: verificano la logica di business isolando le dipendenze con mock (repository, altri service)
-- **Integration test**: verificano il flusso completo HTTP → Controller → Service → Repository → DB, inclusi i vincoli di sicurezza (ruoli ADMIN vs USER)
+
+- **Unit test (backend)**: verificano la logica di business isolando le dipendenze con mock (repository, altri service).
+- **Integration test (backend)**: verificano il flusso completo **HTTP → Controller → Service → Repository → DB**, inclusi i vincoli di sicurezza (ruoli ADMIN vs USER) usando **H2 in-memory**.
+- **Unit/Component test (frontend)**: verificano componenti e logica UI con **Vitest** e **Testing Library** in ambiente **`jsdom`**, con matchers aggiuntivi di **`@testing-library/jest-dom`** e report di **coverage**.
+- **Integration test full‑stack (E2E)**: verificano il comportamento dell’app come l’utente finale, orchestrando **frontend + backend + PostgreSQL** tramite **Docker Compose** e guidando il browser con **Playwright**.
+
+### Struttura dei test (frontend)
+
+I test del frontend sono organizzati in cartelle dedicate (esempi):
+
+- `frontend/src/**/__tests__/*.test.ts(x)` per unit/component test vicino al codice
+- `frontend/src/**/?(*.){test,spec}.ts(x)` come alternativa (convenzione Vitest)
+- `frontend/tests/` per eventuali test di supporto (helpers, fixtures, mock)
+
+Script principali (da `frontend/`):
+
+```bash
+npm run test          # esegue Vitest in watch/CI mode (a seconda della configurazione)
+npm run coverage      # genera report di coverage
+```
+
+> Nota: i test usano `jsdom` come environment e `@testing-library/jest-dom` per asserzioni DOM (es. `toBeInTheDocument`).
+
+### Integration test full‑stack (Playwright)
+
+Questi test validano l’intero flusso **UI → API → DB**, includendo navigazione, creazione/modifica dati e verifiche lato UI e/o via API.
+
+Componenti principali:
+
+- **Playwright**: test E2E e runner (`@playwright/test`)
+- **Docker Compose dedicato**: stack di test isolato (frontend + backend + PostgreSQL)
+- **Seed DB dedicato**: dati iniziali e coerenti per ripetibilità dei test
+- **Script di orchestrazione**:
+    - PowerShell (Windows) e Bash (macOS/Linux) per avviare/fermare lo stack e lanciare i test
+
+#### Docker Compose di integration test
+
+Lo stack di test è separato da quello di sviluppo per evitare collisioni di porte/volumi e garantire ripetibilità.
+
+Esempio di flusso (concettuale):
+
+1. `docker compose -f docker-compose.integration.yml up -d --build`
+2. attesa readiness servizi (DB e backend)
+3. applicazione seed DB di integration test
+4. esecuzione Playwright (`npx playwright test`)
+5. teardown (`docker compose ... down -v`)
+
+#### Seed del database (integration test)
+
+I test full‑stack si basano su un seed dedicato per avere:
+
+- organizzazioni/contenitori già presenti,
+- utenti/ruoli disponibili per i flussi di autenticazione/autorizzazione,
+- dati minimi per scenari CRUD ripetibili.
+
+Il seed viene applicato all’avvio dello stack di integration test (via script), così ogni run parte dallo stesso stato.
+
+#### Smoke test backend (GET/POST)
+
+Prima di eseguire gli E2E (o come parte della pipeline), viene eseguito uno **smoke test** del backend per validare che:
+
+- una chiamata **GET** restituisca un 200 e dati attesi,
+- una chiamata **POST** crei correttamente una risorsa (o fallisca con errori attesi),
+- la connessione al DB sia effettivamente operativa.
+
+Lo smoke test è pensato per fallire velocemente in caso di stack non pronto/configurazione errata, riducendo falsi negativi nei test Playwright.
+
+### Esecuzione rapida
+
+- **Backend (unit + integration)**:
+  ```bash
+  ./mvnw test
+  ```
+
+- **Frontend (unit/component)**:
+  ```bash
+  cd frontend
+  npm ci
+  npm run test
+  npm run coverage
+  ```
+
+- **Full‑stack (Playwright + Docker Compose)**:
+    - Windows (PowerShell): `./scripts/integration-tests.ps1`
+    - macOS/Linux (Bash): `./scripts/integration-tests.sh`
 
 ---
 
@@ -579,7 +664,7 @@ Esempio tipico (se previsto dal progetto) è una variabile tipo:
 ./mvnw test
 ```
 
-### Frontend
+### Frontend (unit/component)
 
 Da `frontend/`:
 
@@ -587,6 +672,12 @@ Da `frontend/`:
 npm run test
 npm run coverage
 ```
+
+### Full‑stack (Playwright)
+
+- Windows (PowerShell): `./scripts/integration-tests.ps1`
+- macOS/Linux (Bash): `./scripts/integration-tests.sh`
+
 
 ---
 
@@ -718,9 +809,9 @@ In alternativa puoi gestire manualmente:
 - `scripts/integration-tests.sh`: runner bash equivalente.
 - `frontend/playwright.config.ts`: configurazione Playwright (report HTML, trace on first retry).
 - `frontend/tests/integration/fullstack.spec.ts`: esempi di test:
-  - caricamento app
-  - caricamento albero organizzazione
-  - creazione apparecchiatura con seriale univoco
+    - caricamento app
+    - caricamento albero organizzazione
+    - creazione apparecchiatura con seriale univoco
 
 ### Note
 - I test di esempio usano selettori/testi UI **indicativi**; se cambiano route o label, adegua i locator in `fullstack.spec.ts`.

@@ -1,0 +1,47 @@
+name: Deploy DEV
+
+on:
+  workflow_run:
+    workflows:
+      - Docker Image
+    branches:
+      - snapshot
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  deploy-dev:
+    name: Deploy to DEV
+    runs-on: ubuntu-latest
+    environment: dev
+
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Compute image tag
+        id: vars
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG="snapshot-${SHORT_SHA}"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER}/anagrafica-radiologica:${TAG}"
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy DEV via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEV_DEPLOY_PATH }}
+
+            echo "APP_IMAGE=${{ steps.vars.outputs.image }}" > .env
+
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
