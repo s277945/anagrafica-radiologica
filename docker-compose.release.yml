@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: anagrafica-radiologica-db-release
+    environment:
+      POSTGRES_DB: anagrafica_radiologica
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - anagrafica_radiologica_release_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d anagrafica_radiologica"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    image: ghcr.io/s277945/anagrafica-radiologica:release-latest
+    container_name: anagrafica-radiologica-app-release
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/anagrafica_radiologica
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SERVER_SERVLET_CONTEXT_PATH: /anagrafica
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  db-init:
+    image: postgres:16-alpine
+    container_name: anagrafica-radiologica-db-init-release
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    environment:
+      PGPASSWORD: postgres
+    volumes:
+      - ./db-data-init.sql:/db-data-init.sql:ro
+    command: >
+      sh -c "
+      echo 'Waiting for application schema initialization...' &&
+      until psql -h db -U postgres -d anagrafica_radiologica -tAc \"SELECT to_regclass('public.organizzazioni')\" | grep -q organizzazioni; do
+        echo 'Schema not ready yet, waiting...';
+        sleep 3;
+      done &&
+      echo 'Schema ready. Running db-data-init.sql...' &&
+      psql -h db -U postgres -d anagrafica_radiologica -v ON_ERROR_STOP=1 -f /db-data-init.sql &&
+      echo 'Database initialization completed.'
+      "
+
+volumes:
+  anagrafica_radiologica_release_pgdata:
