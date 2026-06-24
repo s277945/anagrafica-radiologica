@@ -189,7 +189,8 @@ mvn -N wrapper:wrapper
 # Avvio BE in locale (con Tomcat embedded)
 .\mvnw.cmd spring-boot:run
 
-# Generazione client API (Kubb) - usa **Kubb** per generare client e DTO a partire dallo swagger/OpenAPI del backend.
+# Generazione client API (Kubb) — **da eseguire prima di build/test frontend** per assicurare che il client sia allineato all’OpenAPI.
+# Usa **Kubb** per generare client e DTO a partire dallo swagger/OpenAPI del backend.
 cd frontend
 npm run kubb:gen
 
@@ -229,7 +230,9 @@ curl -u admin:admin -X POST http://localhost:8080/anagrafica/api/apparecchiature
 .\mvnw.cmd test -Dtest="*IntegrationTest"
 ```
 
-I test di integrazione usano il profilo `test` con database H2 in-memory: non richiedono PostgreSQL attivo.
+I test di integrazione **backend** (JUnit/Spring Boot) usano il profilo `test` con database **H2 in-memory**: non richiedono PostgreSQL attivo.
+
+> I test **full‑stack** (Playwright) usano invece **PostgreSQL in Docker** (vedi sezione dedicata).
 
 ### 0.6 Deploy su Tomcat 10.1+
 
@@ -375,7 +378,17 @@ Componenti principali:
 - **Docker Compose dedicato**: stack di test isolato (frontend + backend + PostgreSQL)
 - **Seed DB dedicato**: dati iniziali e coerenti per ripetibilità dei test
 - **Script di orchestrazione**:
-    - PowerShell (Windows) e Bash (macOS/Linux) per avviare/fermare lo stack e lanciare i test
+    - `scripts/integration-tests.ps1` (Windows PowerShell)
+    - `scripts/integration-tests.sh` (macOS/Linux Bash)
+    - `scripts/smoke-tests.ps1` (Windows PowerShell)
+    - `scripts/smoke-tests.sh` (macOS/Linux Bash)
+
+Gli script si occupano tipicamente di:
+1. build immagini (se necessario) e avvio stack con `docker compose -f docker-compose.integration-tests.yml up -d --build`;
+2. attesa readiness (DB e backend);
+3. applicazione seed PostgreSQL;
+4. esecuzione smoke test (API) e poi Playwright;
+5. teardown (`docker compose ... down -v`).
 
 #### Docker Compose di integration test
 
@@ -383,11 +396,20 @@ Lo stack di test è separato da quello di sviluppo per evitare collisioni di por
 
 Esempio di flusso (concettuale):
 
-1. `docker compose -f docker-compose.integration.yml up -d --build`
+1. `docker compose -f docker-compose.integration-tests.yml up -d --build`
 2. attesa readiness servizi (DB e backend)
 3. applicazione seed DB di integration test
 4. esecuzione Playwright (`npx playwright test`)
 5. teardown (`docker compose ... down -v`)
+
+**File Compose:** `docker-compose.integration-tests.yml`
+
+Punti chiave:
+- stack isolato (porte/volumi dedicati) per evitare collisioni con `docker-compose.yml` di sviluppo;
+- avvio servizi + healthcheck/readiness;
+- applicazione seed PostgreSQL dedicato ai test;
+- esecuzione Playwright;
+- teardown con `down -v` per pulizia completa.
 
 #### Seed del database (integration test)
 
@@ -397,7 +419,13 @@ I test full‑stack si basano su un seed dedicato per avere:
 - utenti/ruoli disponibili per i flussi di autenticazione/autorizzazione,
 - dati minimi per scenari CRUD ripetibili.
 
+**Seed minimo richiesto (convenzioni usate nei test):**
+- **Organizzazione**: `OR0000000001`
+- **Contenitore**: `CO0000000001` (appartenente a `OR0000000001`)
+
 Il seed viene applicato all’avvio dello stack di integration test (via script), così ogni run parte dallo stesso stato.
+
+> Nota: se cambi questi identificativi nel seed, aggiorna anche le asserzioni/fixture Playwright che li utilizzano.
 
 #### Smoke test backend (GET/POST)
 
@@ -443,6 +471,58 @@ Il progetto produce un **singolo file WAR** (`target/anagrafica-radiologica.war`
 - Checkout → Setup JDK 21 → mvn clean package → Upload WAR come artefatto
 - I test vengono eseguiti nella fase `test` di Maven (H2 in-memory, nessuna dipendenza esterna)
 ```
+
+
+#### Workflow GitHub Actions
+Workflow principali (in `.github/workflows/`):
+- `ci.yml` — build + test (unit/integration) e verifiche qualità.
+- `integration.yml` — avvio stack Docker e **Playwright full‑stack integration test**.
+- `package.yml` — packaging artefatti (WAR) e/o pubblicazione artifact.
+- `docker.yml` — build & push immagine Docker applicativa.
+- `deploy-dev.yml` — deploy in **DEV**.
+- `deploy-uat.yml` — deploy in **UAT**.
+- `deploy-prod.yml` — deploy in **PROD**.
+- `release.yml` — tag/release (promozione verso stable/main secondo la strategia).
+
+#### Branch strategy e promozione
+Flusso consigliato:
+- sviluppo su `feature/*`
+- merge verso `snapshot` (integrazione continua)
+- promozione/merge verso `stable` (candidate/release)
+- promozione verso `main` (produzione)
+
+> Le promozioni devono essere tracciabili (PR) e passare i workflow richiesti.
+
+#### Ambienti
+- **dev**: integrazione rapida, deploy frequenti.
+- **uat**: validazione QA/UAT con snapshot "stabile".
+- **prod**: rilascio controllato (tag/release).
+
+#### Secrets necessari (DEV/UAT/PROD)
+Tipicamente:
+- credenziali registry (es. `GHCR_TOKEN`/`REGISTRY_USERNAME`/`REGISTRY_PASSWORD`)
+- credenziali SSH/runner remoto (host, user, key) per deploy
+- eventuali variabili applicative (DB, basic auth, ecc.) per ciascun ambiente
+
+> Prefissi o gruppi separati per ambiente (es. `DEV_*`, `UAT_*`, `PROD_*`).
+
+#### Gestione `APP_IMAGE` nel `.env` remoto (senza sovrascrivere le altre variabili)
+Nei deploy su server remoto, aggiornare **solo** la variabile `APP_IMAGE` nel file `.env` (o file env usato dal compose), evitando di sovrascrivere altre configurazioni.
+Esempio (concettuale):
+- leggere il `.env` esistente;
+- sostituire/aggiungere la riga `APP_IMAGE=...`;
+- lasciare inalterate tutte le altre variabili.
+
+#### Branch protection e flusso operativo
+- abilitata branch protection su `snapshot`, `stable`, `main`:
+    - status checks obbligatori (workflow CI/integration/package/docker)
+    - review minime (es. 1-2)
+    - blocco force-push
+- flusso operativo:
+    1) apri PR `feature/*` → `snapshot`
+    2) CI green + integration green
+    3) promuovi `snapshot` → `stable` tramite PR
+    4) esegui `release.yml`/tag e promuovi `stable` → `main`
 
 ### Deploy
 Il WAR è deployabile su qualsiasi servlet container compatibile Jakarta EE 10:
@@ -664,7 +744,7 @@ Esempio tipico (se previsto dal progetto) è una variabile tipo:
 ./mvnw test
 ```
 
-### Frontend (unit/component)
+### Frontend (unit/component) — Vitest
 
 Da `frontend/`:
 
@@ -673,7 +753,7 @@ npm run test
 npm run coverage
 ```
 
-### Full‑stack (Playwright)
+### Full‑stack (Playwright) — integration test
 
 - Windows (PowerShell): `./scripts/integration-tests.ps1`
 - macOS/Linux (Bash): `./scripts/integration-tests.sh`
