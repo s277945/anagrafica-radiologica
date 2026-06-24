@@ -4,6 +4,46 @@ Applicazione **full‑stack** per la gestione di un’anagrafica radiologica con
 
 - **albero organizzativo** (Organizzazione → Contenitori → …) consultabile via API e frontend;
 - **creazione/gestione Apparecchiature** radiologiche con validazioni di business (es. seriale univoco, data non futura, coerenza con organizzazione/contenitore).
+
+## Build e avvio - fast
+
+```powershell
+# Posizionarsi nella root del progetto
+cd H:\cyberqual\anagrafica-radiologica
+
+# Installare PostgreSQL 
+1. Scaricare l'installer da https://www.postgresql.org/download
+2. Installare con le opzioni predefinite (porta 5432, password `postgres`)
+3. **Non selezionare Stack Builder** al termine dell'installazione → deselezionare e cliccare Finish
+
+# Aprire pgAdmin o psql ed eseguire query
+CREATE DATABASE anagrafica_radiologica;
+-- Le tabelle vengono create automaticamente dallo schema.sql all'avvio
+Dopodichè eseguire anche lo script db-data-init.sql per inizializzare i dati delle tabelle db
+
+# Prima volta: generare il Maven wrapper
+mvn -N wrapper:wrapper
+
+# Build completa e avvio BE in locale (con Tomcat embedded)
+.\mvnw.cmd spring-boot:run
+
+# Avvio FE in locale
+cd frontend
+npm run dev
+
+# Autenticazione
+al prompt sul browser, inserire utente ADMIN, password ADMIN per pieni privilegi
+```
+
+## Avvio fast con docker image
+
+````
+git clone https://github.com/s277945/anagrafica-radiologica.git
+cd anagrafica-radiologica
+
+docker compose -f docker-compose.release.yml up -d --pull always
+````
+
 ## Indice
 
 1. [Panoramica e architettura](#panoramica-e-architettura)

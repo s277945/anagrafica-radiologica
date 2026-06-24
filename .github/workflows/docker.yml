@@ -20,6 +20,7 @@ jobs:
     outputs:
       image: ${{ steps.vars.outputs.image }}
       tag: ${{ steps.vars.outputs.tag }}
+      extra_tag: ${{ steps.vars.outputs.extra_tag }}
 
     steps:
       - name: Checkout
@@ -38,32 +39,52 @@ jobs:
       - name: Build WAR
         run: ./mvnw clean package -DskipTests
 
-      - name: Compute image tag
+      - name: Compute image tags
         id: vars
         shell: bash
         run: |
           SHORT_SHA="${GITHUB_SHA::7}"
+          IMAGE_BASE="ghcr.io/${GITHUB_REPOSITORY_OWNER}/anagrafica-radiologica"
 
           if [ "${GITHUB_REF_NAME}" = "snapshot" ]; then
             TAG="snapshot-${SHORT_SHA}"
+            EXTRA_TAG="snapshot-latest"
           elif [ "${GITHUB_REF_NAME}" = "stable" ]; then
             TAG="stable-${SHORT_SHA}"
+            EXTRA_TAG="stable-latest"
           elif [ "${GITHUB_REF_NAME}" = "main" ]; then
             TAG="release-${SHORT_SHA}"
+            EXTRA_TAG="release-latest"
           else
-            TAG="${GITHUB_REF_NAME}-${SHORT_SHA}"
+            SAFE_BRANCH="$(echo "${GITHUB_REF_NAME}" | tr '/' '-')"
+            TAG="${SAFE_BRANCH}-${SHORT_SHA}"
+            EXTRA_TAG=""
           fi
 
-          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER}/anagrafica-radiologica:${TAG}"
+          IMAGE="${IMAGE_BASE}:${TAG}"
 
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "image_base=${IMAGE_BASE}" >> "$GITHUB_OUTPUT"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "extra_tag=${EXTRA_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Build Docker image
-        run: docker build -t "${{ steps.vars.outputs.image }}" .
+        run: |
+          docker build -t "${{ steps.vars.outputs.image }}" .
+
+          if [ -n "${{ steps.vars.outputs.extra_tag }}" ]; then
+            docker tag \
+              "${{ steps.vars.outputs.image }}" \
+              "${{ steps.vars.outputs.image_base }}:${{ steps.vars.outputs.extra_tag }}"
+          fi
 
       - name: Push Docker image
-        run: docker push "${{ steps.vars.outputs.image }}"
+        run: |
+          docker push "${{ steps.vars.outputs.image }}"
+
+          if [ -n "${{ steps.vars.outputs.extra_tag }}" ]; then
+            docker push "${{ steps.vars.outputs.image_base }}:${{ steps.vars.outputs.extra_tag }}"
+          fi
