@@ -7,9 +7,6 @@ on:
       - stable
       - main
   workflow_dispatch:
-    - snapshot
-    - stable
-    - main
 
 jobs:
   package:
