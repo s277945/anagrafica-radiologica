@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
     "kubb:gen": "kubb generate",
+    "prebuild": "npm run kubb:gen",
+    "build": "tsc -b && vite build",
+    "pretest": "npm run kubb:gen",
     "test": "vitest run",
     "test:watch": "vitest",
+    "precoverage": "npm run kubb:gen",
     "coverage": "vitest run --coverage",
+    "pretest:integration": "npm run kubb:gen",
     "test:integration": "playwright test",
     "test:integration:ui": "playwright test --ui",
     "test:integration:headed": "playwright test --headed"
