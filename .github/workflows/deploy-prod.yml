@@ -39,7 +39,10 @@ jobs:
           script: |
             cd ${{ secrets.PROD_DEPLOY_PATH }}
 
-            echo "APP_IMAGE=${{ steps.vars.outputs.image }}" > .env
+            touch .env
+            grep -v '^APP_IMAGE=' .env > .env.tmp || true
+            echo "APP_IMAGE=${{ steps.vars.outputs.image }}" >> .env.tmp
+            mv .env.tmp .env
 
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker compose pull
