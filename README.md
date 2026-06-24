@@ -38,10 +38,14 @@ al prompt sul browser, inserire utente ADMIN, password ADMIN per pieni privilegi
 ## Avvio fast con docker image
 
 ````
+# Pull e avvio docker image ultima release
 git clone https://github.com/s277945/anagrafica-radiologica.git
 cd anagrafica-radiologica
 
 docker compose -f docker-compose.release.yml up -d --pull always
+
+# Aprire pagina FE
+http://localhost:8080/anagrafica/
 ````
 
 ## Indice
