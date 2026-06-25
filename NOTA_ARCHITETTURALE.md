@@ -20,33 +20,20 @@ La nota architetturale descrive le scelte tecniche e progettuali della PoC, le m
 
 ---
 
-## 2. Fonti e contesto
+## 2. Decisioni architetturali sintetiche
 
-Le informazioni sono derivate dal repository pubblico GitHub:
-
-- `s277945/anagrafica-radiologica`
-
-Elementi rilevanti estratti:
-
-| Area | Informazioni rilevanti |
-|---|---|
-| Backend | Spring Boot, Java 21, Spring Web, Spring Data JPA/Hibernate, Spring Security Basic Auth, springdoc-openapi/Swagger UI |
-| Packaging backend | WAR |
-| Frontend | React 18, Vite 5, TypeScript 5, TanStack Query v5 |
-| API client | Generato con Kubb a partire da specifica OpenAPI YAML |
-| Persistenza | PostgreSQL, con PostgreSQL `16-alpine` in Docker Compose |
-| Sviluppo | Possibile H2 console in sviluppo, ma configurazione principale basata su PostgreSQL |
-| API | Endpoint REST sotto `/api/**` |
-| Context path backend | `server.servlet.context-path=/anagrafica` |
-| Runtime API | `/anagrafica/api/**` |
-| Gerarchia dati | Organizzazione → Contenitori → Contenitori annidati |
-| Strategia gerarchica | Adjacency List con `parent_id` |
-| Entità principali | Organizzazione, Contenitore, Apparecchiatura |
-| Validazioni | Seriale univoco, data non futura, coerenza organizzazione/contenitore |
-| DevOps | Docker Compose, GitHub Actions, WAR, Docker images |
-| Test full-stack | Docker, PostgreSQL, backend, frontend, seed, smoke test, Playwright |
-| Branch strategy | `feature/*` → `snapshot` → `stable` → `main` |
-| Ambienti | `dev`, `uat`, `prod` |
+| Decisione | Stato | Motivazione |
+|---|---|---|
+| Backend Spring Boot Java 21 | Adottata | Stack maturo, enterprise-ready, integrabile con JPA, Security e OpenAPI. |
+| Frontend React/TypeScript/Vite | Adottata | UI moderna, tipizzata, veloce in sviluppo. |
+| PostgreSQL | Adottata | Database relazionale robusto, adatto a vincoli e relazioni. |
+| Gerarchia con Adjacency List | Adottata per PoC | Semplice, leggibile, compatibile con JPA. |
+| OpenAPI + Kubb | Adottata | Allineamento contratto API e client frontend. |
+| Basic Auth con ADMIN | Adottata per PoC | Semplice e sufficiente per validazione iniziale. |
+| Docker Compose | Adottata | Ambiente riproducibile e test full-stack. |
+| GitHub Actions | Linea guida / impostazione CI/CD | Automazione build, test e artifact. |
+| WAR backend | Adottata | Packaging indicato dal progetto. |
+| Docker images | Linea guida DevOps | Distribuzione riproducibile dei componenti. |
 
 ---
 
@@ -1054,22 +1041,5 @@ Possibili evoluzioni:
 - scansione vulnerabilità;
 - osservabilità applicativa;
 - metriche, logging strutturato e tracing.
-
----
-
-## 19. Decisioni architetturali sintetiche
-
-| Decisione | Stato | Motivazione |
-|---|---|---|
-| Backend Spring Boot Java 21 | Adottata | Stack maturo, enterprise-ready, integrabile con JPA, Security e OpenAPI. |
-| Frontend React/TypeScript/Vite | Adottata | UI moderna, tipizzata, veloce in sviluppo. |
-| PostgreSQL | Adottata | Database relazionale robusto, adatto a vincoli e relazioni. |
-| Gerarchia con Adjacency List | Adottata per PoC | Semplice, leggibile, compatibile con JPA. |
-| OpenAPI + Kubb | Adottata | Allineamento contratto API e client frontend. |
-| Basic Auth con ADMIN | Adottata per PoC | Semplice e sufficiente per validazione iniziale. |
-| Docker Compose | Adottata | Ambiente riproducibile e test full-stack. |
-| GitHub Actions | Linea guida / impostazione CI/CD | Automazione build, test e artifact. |
-| WAR backend | Adottata | Packaging indicato dal progetto. |
-| Docker images | Linea guida DevOps | Distribuzione riproducibile dei componenti. |
 
 ---
