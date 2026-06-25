@@ -110,8 +110,6 @@ La PoC non intende coprire in modo definitivo:
 - osservabilità avanzata;
 - hardening completo per produzione.
 
-> Le aree non coperte sono considerate possibili evoluzioni future e non limiti bloccanti per la validazione architetturale iniziale.
-
 ---
 
 ## 5. Sintesi della soluzione
