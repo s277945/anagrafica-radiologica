@@ -352,19 +352,34 @@ La relazione ricorsiva dei Contenitori è gestita tramite **Adjacency List**: og
 
 ### Schema ER
 
-```
-┌─────────────────┐       ┌──────────────────┐       ┌─────────────────────┐
-│  organizzazioni │       │   contenitori    │       │   apparecchiature   │
-├─────────────────┤       ├──────────────────┤       ├─────────────────────┤
-│ id (PK)         │──┐    │ id (PK)          │──┐    │ id (PK)             │
-│ nome            │  │    │ nome             │  │    │ nome                │
-└─────────────────┘  │    │ organizzazione_id│←─┘    │ tipologia           │
-                     │    │ parent_id (FK)   │←─┐    │ numero_di_serie     │
-                     │    └──────────────────┘  │    │ data_installazione  │
-                     │           │              │    │ organizzazione_id   │←─┐
-                     │           └──────────────┘    │ contenitore_id      │  │
-                     │         (self-referencing)    └─────────────────────┘  │
-                     └────────────────────────────────────────────────────────┘
+```mermaid
+erDiagram
+    ORGANIZZAZIONI ||--o{ CONTENITORI : contiene
+    ORGANIZZAZIONI ||--o{ APPARECCHIATURE : possiede
+    CONTENITORI ||--o{ CONTENITORI : contiene
+    CONTENITORI ||--o{ APPARECCHIATURE : contiene
+
+    ORGANIZZAZIONI {
+        string id PK
+        string nome
+    }
+
+    CONTENITORI {
+        string id PK
+        string nome
+        string organizzazione_id FK
+        string parent_id FK
+    }
+
+    APPARECCHIATURE {
+        string id PK
+        string nome
+        string tipologia
+        string numero_di_serie
+        date data_installazione
+        string organizzazione_id FK
+        string contenitore_id FK
+    }
 ```
 
 ---
@@ -805,6 +820,73 @@ npm run coverage
 
 ---
 
+## Integration test full-stack (frontend + backend + database)
+
+Questa repo include **integration test end-to-end** che avviano un ambiente completo con **PostgreSQL + backend + frontend** via Docker Compose e poi eseguono test **Playwright** contro l’app.
+
+### Prerequisiti
+- Docker / Docker Compose
+- Node.js + npm (per eseguire Playwright dal progetto `frontend`)
+
+### Avvio ed esecuzione (comandi speciali)
+
+**Windows (PowerShell)**:
+- Esecuzione headless (default):
+  ```powershell
+  ./scripts/integration-tests.ps1
+  ```
+- UI runner Playwright:
+  ```powershell
+  ./scripts/integration-tests.ps1 -UI
+  ```
+- Modalità headed (browser visibile):
+  ```powershell
+  ./scripts/integration-tests.ps1 -Headed
+  ```
+
+**Linux/macOS (bash)**:
+- Headless:
+  ```bash
+  ./scripts/integration-tests.sh
+  ```
+- UI:
+  ```bash
+  ./scripts/integration-tests.sh ui
+  ```
+- Headed:
+  ```bash
+  ./scripts/integration-tests.sh headed
+  ```
+
+In alternativa puoi gestire manualmente:
+1. Avviare l’ambiente:
+   ```bash
+   docker compose -f docker-compose.integration-tests.yml up -d --build
+   ```
+2. Lanciare i test dal frontend:
+   ```bash
+   cd frontend
+   npm ci
+   npx playwright install --with-deps
+   npm run test:integration
+   ```
+3. Spegnere:
+   ```bash
+   docker compose -f docker-compose.integration-tests.yml down -v
+   ```
+
+### Struttura file per integration test
+- `docker-compose.integration-tests.yml`: compose dedicato agli integration test (db + backend + frontend).
+- `scripts/integration-tests.ps1`: runner PowerShell che avvia/ferma l’ambiente ed esegue Playwright.
+- `scripts/integration-tests.sh`: runner bash equivalente.
+- `frontend/playwright.config.ts`: configurazione Playwright (report HTML, trace on first retry).
+- `frontend/tests/integration/fullstack.spec.ts`: test effettivi:
+    - caricamento app
+    - caricamento albero organizzazione
+    - creazione apparecchiatura con seriale univoco
+
+---
+
 ## Troubleshooting
 
 ### Porta 8080/5432 occupata
@@ -871,73 +953,4 @@ Vedi `.gitignore` per la lista completa.
 ## Licenza
 
 Questo progetto è rilasciato sotto licenza **MIT**. Vedi il file [`LICENSE`](LICENSE).
-
-## Integration test full-stack (frontend + backend + database)
-
-Questa repo include **integration test end-to-end** che avviano un ambiente completo con **PostgreSQL + backend + frontend** via Docker Compose e poi eseguono test **Playwright** contro l’app.
-
-### Prerequisiti
-- Docker / Docker Compose
-- Node.js + npm (per eseguire Playwright dal progetto `frontend`)
-
-### Avvio ed esecuzione (comandi speciali)
-
-**Windows (PowerShell)**:
-- Esecuzione headless (default):
-  ```powershell
-  ./scripts/integration-tests.ps1
-  ```
-- UI runner Playwright:
-  ```powershell
-  ./scripts/integration-tests.ps1 -UI
-  ```
-- Modalità headed (browser visibile):
-  ```powershell
-  ./scripts/integration-tests.ps1 -Headed
-  ```
-
-**Linux/macOS (bash)**:
-- Headless:
-  ```bash
-  ./scripts/integration-tests.sh
-  ```
-- UI:
-  ```bash
-  ./scripts/integration-tests.sh ui
-  ```
-- Headed:
-  ```bash
-  ./scripts/integration-tests.sh headed
-  ```
-
-In alternativa puoi gestire manualmente:
-1. Avviare l’ambiente:
-   ```bash
-   docker compose -f docker-compose.integration-tests.yml up -d --build
-   ```
-2. Lanciare i test dal frontend:
-   ```bash
-   cd frontend
-   npm ci
-   npx playwright install --with-deps
-   npm run test:integration
-   ```
-3. Spegnere:
-   ```bash
-   docker compose -f docker-compose.integration-tests.yml down -v
-   ```
-
-### Struttura file aggiunti/modificati
-- `docker-compose.integration-tests.yml`: compose dedicato agli integration test (db + backend + frontend).
-- `scripts/integration-tests.ps1`: runner PowerShell che avvia/ferma l’ambiente ed esegue Playwright.
-- `scripts/integration-tests.sh`: runner bash equivalente.
-- `frontend/playwright.config.ts`: configurazione Playwright (report HTML, trace on first retry).
-- `frontend/tests/integration/fullstack.spec.ts`: esempi di test:
-    - caricamento app
-    - caricamento albero organizzazione
-    - creazione apparecchiatura con seriale univoco
-
-### Note
-- I test di esempio usano selettori/testi UI **indicativi**; se cambiano route o label, adegua i locator in `fullstack.spec.ts`.
-- L’URL base è controllabile tramite `PLAYWRIGHT_BASE_URL` (default: `http://localhost:5173`).
 
